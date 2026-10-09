@@ -50,12 +50,16 @@ the first case that applies.
    to confirming the error the install sent.
 2. **The docs have a separate test command or snippet** (a `test` command, a settings
    checkbox, a snippet that notifies or raises): run it once, exactly as the docs show.
-3. **The docs have no test step** (for example Ember): trigger one yourself. Run the app
-   the way it normally starts and raise an error on a real code path. A temporary route,
-   button, or a raise behind a one-off flag is fine; remove it afterward. Give the error a
-   unique message (e.g. `Honeybadger test error <timestamp>`) so you can find exactly it.
-   If you know how to start the app, offer to do it; otherwise ask the user to start it or
-   tell you how.
+   If the docs offer several independent triggers (WordPress has separate PHP and JS
+   test checkboxes), pick one.
+3. **The docs have no test step** (for example Ember): trigger one yourself, through the
+   running app. Prefer an existing code path that can be made to fail (a form with
+   invalid input, a 404 page, a dev-only console call to the client's `notify`), or ask
+   the user how they would trigger an error. Only if neither works, add a temporary
+   trigger (a raise behind a one-off flag or a dev-only route) and remove it afterward.
+   Give the error a unique message (e.g. `Honeybadger test error <timestamp>`) so you can
+   find exactly it. If you know how to start the app, offer to do it; otherwise ask the
+   user to start it or tell you how.
 
 Client libraries don't report from development or test environments by default. The
 install and test commands in cases 1 and 2 turn reporting on for themselves. In case 3,
