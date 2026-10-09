@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: jobs-offer-on-new-job
+description: The user adds a new scheduled job to an app that already uses Honeybadger and says nothing about monitoring. The agent should write the job, offer a check-in in a sentence, and create nothing until the user says yes.
+tags: [monitor-jobs]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(git diff:*)", "Bash(git blame:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

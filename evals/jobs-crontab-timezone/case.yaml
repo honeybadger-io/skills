@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: jobs-crontab-timezone
+description: A plain crontab with CRON_TZ=America/New_York and no Honeybadger library. The agent should create a cron check-in with a Rails-style timezone name and append a curl report to the cron line.
+tags: [monitor-jobs]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(git diff:*)", "Bash(git blame:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

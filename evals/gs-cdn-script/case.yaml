@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: gs-cdn-script
+description: Ember app that already loads honeybadger.js from the CDN. The agent must not add a second client.
+tags: [get-started]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, WebFetch]
+context:
+  scaffold_script: fixture.sh

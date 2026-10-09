@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: debug-smoke-tests
+description: Every open fault is an intentional smoke test. The agent should change no code and leave the faults alone.
+tags: [debug-errors]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(git diff:*)", "Bash(git blame:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

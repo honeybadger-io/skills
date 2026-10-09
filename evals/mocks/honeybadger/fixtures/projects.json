@@ -1,0 +1,33 @@
+{
+  "results": [
+    {
+      "id": 1001,
+      "name": "Shop",
+      "active": true,
+      "created_at": "2025-01-10T11:58:00Z",
+      "last_notice_at": "2026-10-07T21:30:00Z",
+      "fault_count": 41,
+      "unresolved_fault_count": 2,
+      "environments": [
+        "production"
+      ]
+    },
+    {
+      "id": 1002,
+      "name": "Marketing Site",
+      "active": true,
+      "created_at": "2024-06-02T09:00:00Z",
+      "last_notice_at": "2026-09-30T08:11:00Z",
+      "fault_count": 7,
+      "unresolved_fault_count": 1,
+      "environments": [
+        "production"
+      ]
+    }
+  ],
+  "links": {
+    "next": "",
+    "prev": "",
+    "self": "https://app.honeybadger.io/v2/projects"
+  }
+}

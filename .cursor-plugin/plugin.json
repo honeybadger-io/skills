@@ -1,0 +1,11 @@
+{
+  "name": "honeybadger",
+  "version": "0.2.0",
+  "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io, plus the Honeybadger MCP server",
+  "author": {
+    "name": "Honeybadger Industries LLC",
+    "email": "support@honeybadger.io",
+    "url": "https://www.honeybadger.io"
+  },
+  "keywords": ["honeybadger", "error-tracking", "debugging", "monitoring", "observability", "mcp"]
+}

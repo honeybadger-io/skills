@@ -1,0 +1,41 @@
+{
+  "results": [
+    {
+      "id": "7c1e2a90-5004-4b6a-9f10-0000000000d4",
+      "created_at": "2026-10-07T21:30:00Z",
+      "environment": {
+        "environment_name": null,
+        "hostname": "smoke-runner",
+        "project_root": "/srv/smoke",
+        "revision": null,
+        "time": "2026-10-07 21:30:00 UTC",
+        "pid": 4242
+      },
+      "environment_name": null,
+      "cookies": {},
+      "fault_id": 5004,
+      "url": "https://app.honeybadger.io/projects/1001/faults/5004/01J7C1E2A90",
+      "message": "This is a smoke test from the uptime checker",
+      "web_environment": {},
+      "request": {
+        "action": null,
+        "component": null,
+        "context": {},
+        "params": {
+          "a": "1",
+          "b": "2"
+        },
+        "session": {},
+        "url": "https://crywolf.example/pages/runtime_error?a=1&b=2",
+        "user": null
+      },
+      "backtrace": [],
+      "application_trace": []
+    }
+  ],
+  "links": {
+    "next": "",
+    "prev": "",
+    "self": "https://app.honeybadger.io/v2/projects/1001/faults/5004/notices"
+  }
+}

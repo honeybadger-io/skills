@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: investigate-holdout
+description: Holdout case written after the skill. A signed-in customer (user 4417) says their address will not save. No error exists; the agent must find their 422s in Insights, see that every postal code that is not five digits fails since the Oct 4 deploy, and find the validation commit.
+tags: [investigate]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

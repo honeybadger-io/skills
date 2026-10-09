@@ -1,0 +1,17 @@
+{
+  "name": "honeybadger",
+  "owner": {
+    "name": "Honeybadger Industries LLC",
+    "email": "support@honeybadger.io"
+  },
+  "metadata": {
+    "description": "Honeybadger skills for AI coding agents — error debugging and check-ins"
+  },
+  "plugins": [
+    {
+      "name": "honeybadger",
+      "source": "./",
+      "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io, plus the Honeybadger MCP server"
+    }
+  ]
+}

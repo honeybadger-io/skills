@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: gs-new-app-no-project
+description: Rails app without Honeybadger; no existing project fits. The agent should propose a project name and ask before creating it.
+tags: [get-started]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, WebFetch]
+context:
+  scaffold_script: fixture.sh

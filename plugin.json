@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "honeybadger",
+  "version": "0.2.0",
+  "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io",
+  "author": {
+    "name": "Honeybadger Industries LLC",
+    "url": "https://www.honeybadger.io"
+  },
+  "homepage": "https://docs.honeybadger.io",
+  "repository": "https://github.com/honeybadger-io/skills",
+  "license": "MIT",
+  "keywords": [
+    "error-tracking",
+    "debugging",
+    "monitoring",
+    "observability",
+    "honeybadger"
+  ]
+}

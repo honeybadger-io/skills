@@ -1,0 +1,13 @@
+{
+  "name": "honeybadger",
+  "owner": {
+    "name": "Honeybadger Industries LLC"
+  },
+  "plugins": [
+    {
+      "name": "honeybadger",
+      "source": "./",
+      "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io, plus the Honeybadger MCP server"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+#!/bin/bash
+source "$(dirname "$0")/../_shared/make-shop.sh"
+make_shop
+add_shop_addresses
+add_shop_time_zone

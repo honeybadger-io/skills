@@ -1,0 +1,1 @@
+{"results": [{"id": 1002, "name": "Marketing Site", "active": true, "created_at": "2024-06-02T09:00:00Z", "last_notice_at": "2026-09-30T08:11:00Z", "fault_count": 7, "unresolved_fault_count": 1, "environments": ["production"]}], "links": {"next": "", "prev": "", "self": "https://app.honeybadger.io/v2/projects"}}

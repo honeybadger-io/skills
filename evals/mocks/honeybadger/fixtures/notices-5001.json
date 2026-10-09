@@ -1,0 +1,126 @@
+{
+  "results": [
+    {
+      "id": "7c1e2a90-5001-4b6a-9f10-0000000000a1",
+      "created_at": "2026-10-07T21:12:40Z",
+      "environment": {
+        "environment_name": "production",
+        "hostname": "shop-web-1",
+        "project_root": "/var/www/shop/releases/20260920153512",
+        "revision": "71983319a6b4fdf4b6b9ac5aeda327487a338a0d",
+        "time": "2026-10-07 21:12:40 UTC",
+        "pid": 4242
+      },
+      "environment_name": "production",
+      "cookies": {},
+      "fault_id": 5001,
+      "url": "https://app.honeybadger.io/projects/1001/faults/5001/01J7C1E2A90",
+      "message": "NoMethodError: undefined method 'name' for nil",
+      "web_environment": {},
+      "request": {
+        "action": "show",
+        "component": "orders",
+        "context": {
+          "component": "orders",
+          "action": "show",
+          "checkout": "guest"
+        },
+        "params": {
+          "controller": "orders",
+          "action": "show",
+          "id": "88231"
+        },
+        "session": {},
+        "url": "https://shop.example/orders/88231",
+        "user": null
+      },
+      "backtrace": [
+        {
+          "number": 10,
+          "file": "[PROJECT_ROOT]/app/models/order.rb",
+          "method": "Order#customer_name",
+          "context": "app",
+          "source": {
+            "8": "  # Shown on the receipt page.\n",
+            "9": "  def customer_name\n",
+            "10": "    customer.name\n",
+            "11": "  end\n",
+            "12": "end\n"
+          }
+        },
+        {
+          "number": 4,
+          "file": "[PROJECT_ROOT]/app/controllers/orders_controller.rb",
+          "method": "OrdersController#show",
+          "context": "app",
+          "source": {
+            "2": "  def show\n",
+            "3": "    @order = Order.find(params[:id])\n",
+            "4": "    @customer_name = @order.customer_name\n",
+            "5": "  end\n"
+          }
+        },
+        {
+          "number": 6,
+          "file": "[GEM_ROOT]/gems/actionpack-8.0.2/lib/action_controller/metal/basic_implicit_render.rb",
+          "method": "ActionController::BasicImplicitRender#send_action",
+          "context": "all"
+        },
+        {
+          "number": 226,
+          "file": "[GEM_ROOT]/gems/actionpack-8.0.2/lib/abstract_controller/base.rb",
+          "method": "AbstractController::Base#process_action",
+          "context": "all"
+        },
+        {
+          "number": 193,
+          "file": "[GEM_ROOT]/gems/actionpack-8.0.2/lib/action_controller/metal/rendering.rb",
+          "method": "ActionController::Rendering#process_action",
+          "context": "all"
+        }
+      ],
+      "application_trace": [
+        {
+          "number": 10,
+          "file": "[PROJECT_ROOT]/app/models/order.rb",
+          "method": "Order#customer_name",
+          "context": "app",
+          "source": {
+            "8": "  # Shown on the receipt page.\n",
+            "9": "  def customer_name\n",
+            "10": "    customer.name\n",
+            "11": "  end\n",
+            "12": "end\n"
+          }
+        },
+        {
+          "number": 4,
+          "file": "[PROJECT_ROOT]/app/controllers/orders_controller.rb",
+          "method": "OrdersController#show",
+          "context": "app",
+          "source": {
+            "2": "  def show\n",
+            "3": "    @order = Order.find(params[:id])\n",
+            "4": "    @customer_name = @order.customer_name\n",
+            "5": "  end\n"
+          }
+        }
+      ],
+      "deploy": {
+        "changelog": [],
+        "created_at": "2026-09-20T15:35:12Z",
+        "environment": "production",
+        "id": 880021,
+        "local_username": "deploy",
+        "repository": "https://github.com/example/shop",
+        "revision": "71983319a6b4fdf4b6b9ac5aeda327487a338a0d",
+        "url": "https://github.com/example/shop/compare/4ada677...7198331"
+      }
+    }
+  ],
+  "links": {
+    "next": "",
+    "prev": "",
+    "self": "https://app.honeybadger.io/v2/projects/1001/faults/5001/notices"
+  }
+}

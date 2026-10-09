@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: investigate-incident
+description: A postmortem request for a past incident. The agent should combine faults and Insights into a timeline, cause (inventory service timeouts), and impact, without inventing a deploy or a fix.
+tags: [investigate]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: alarm-create-confirm
+description: A vague alerting request with no go-ahead. The agent should measure the current rate, propose a full alarm config with a justified threshold, and ask before creating.
+tags: [alarms]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(git log:*)", "Bash(git show:*)", "Bash(git rev-parse:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

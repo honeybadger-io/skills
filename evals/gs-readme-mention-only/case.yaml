@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: gs-readme-mention-only
+description: README mentions Honeybadger but the app does not use it. The agent should treat it as not installed.
+tags: [get-started]
+plugins: ["../.."]
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, WebFetch]
+context:
+  scaffold_script: fixture.sh
