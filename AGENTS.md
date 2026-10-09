@@ -33,6 +33,12 @@ evals/                          # claude plugin eval suite: mock Honeybadger ser
 
 The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json`. Bump them together; `scripts/validate.py` fails if they differ.
 
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
+`docs:`, `chore:`, `refactor:`, `test:`. Scope is optional and is usually the skill name
+(`fix(get-started): ...`). Imperative subject, no trailing period.
+
 ## Checks
 
 Run before committing:

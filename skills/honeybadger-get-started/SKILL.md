@@ -7,8 +7,9 @@ description: Sets up Honeybadger in a project end to end, or orients a user whos
 
 Two outcomes, depending on the repo:
 
-- **New to Honeybadger:** a real error from the running app is confirmed in Honeybadger
-  through the MCP, and the user is on a path to production.
+- **New to Honeybadger:** one test error, sent the way the platform docs verify an
+  install, is confirmed in Honeybadger through the MCP, and the user is on a path to
+  production.
 - **Already using Honeybadger:** the user is routed to the right next step.
 
 ## 1. Probe
@@ -57,7 +58,7 @@ Re-run the probe once they're connected.
 
 **No Honeybadger in the repo** → read
 [`references/first-error-setup.md`](references/first-error-setup.md) and follow it to the
-end. Don't show a menu or ask which features they want: until one real error lands,
+end. Don't show a menu or ask which features they want: until that first error lands,
 nothing else Honeybadger offers is useful to them.
 
 **Honeybadger already in the repo** → if the user's request already names a goal, take

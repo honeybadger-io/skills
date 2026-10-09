@@ -1,8 +1,9 @@
 # First-error setup
 
-Goal: a real error from the running app is confirmed in Honeybadger through the MCP, and
-the app is on a path to production. A local-only success isn't the goal — the value of
-error tracking comes from errors real users hit.
+Goal: one test error, sent through the app the way the platform docs verify an install,
+is confirmed in Honeybadger through the MCP, and the app is on a path to production. A
+local-only success isn't the goal — the value of error tracking comes from errors real
+users hit.
 
 ## 1. Platform and region
 
@@ -37,26 +38,34 @@ users expect to have.
 
 ## 4. Verify
 
-Client libraries don't report from development or test environments by default, so a
-correct install sends nothing from a local run. Before verifying, temporarily enable
-reporting with the switch the library's docs describe, and remove it afterward. A missing
-switch is the usual reason nothing shows up.
+The platform docs end with a verification step. Do that step once and nothing more: send
+exactly one test error, then confirm it through the MCP. Work down this list and stop at
+the first case that applies.
 
-Verify with the platform's own instructions:
+1. **The docs' install command sends a test error itself.** Ruby's
+   `bundle exec honeybadger install <key>` and Laravel's `php artisan honeybadger:install <key>`
+   write the config *and* send a test exception through the app. Running the install
+   command is the verification. Do not also run `honeybadger test` or
+   `honeybadger:test`, call `notify`, add a route, or raise anything yourself; go straight
+   to confirming the error the install sent.
+2. **The docs have a separate test command or snippet** (a `test` command, a settings
+   checkbox, a snippet that notifies or raises): run it once, exactly as the docs show.
+   If the docs offer several independent triggers (WordPress has separate PHP and JS
+   test checkboxes), pick one.
+3. **The docs have no test step** (for example Ember): trigger one yourself, through the
+   running app. Prefer an existing code path that can be made to fail (a form with
+   invalid input, a 404 page, a dev-only console call to the client's `notify`), or ask
+   the user how they would trigger an error. Only if neither works, add a temporary
+   trigger (a raise behind a one-off flag or a dev-only route) and remove it afterward.
+   Give the error a unique message (e.g. `Honeybadger test error <timestamp>`) so you can
+   find exactly it. If you know how to start the app, offer to do it; otherwise ask the
+   user to start it or tell you how.
 
-- **The docs have a test or install command that sends a test error** (for example
-  `bundle exec honeybadger install` or `bundle exec honeybadger test` for Ruby, and
-  `php artisan honeybadger:install` or `php artisan honeybadger:test` for Laravel): run it as the docs
-  say. If the install step already sent a test error, confirm that one instead of sending
-  another.
-- **The docs show another way to test** (a settings checkbox or a snippet that notifies or
-  raises): follow it.
-- **The docs have no test step** (for example Ember): trigger a test error yourself. Run
-  the app the way it normally starts and raise an error on a real code path. A temporary
-  route, button, or a raise behind a one-off flag is fine; remove it afterward. Give the
-  error a unique message (e.g. `Honeybadger test error <timestamp>`) so you can find
-  exactly it. If you know how to start the app, offer to do it; otherwise ask the user to
-  start it or tell you how.
+Client libraries don't report from development or test environments by default. The
+install and test commands in cases 1 and 2 turn reporting on for themselves. In case 3,
+and for a snippet that only calls `notify`, temporarily enable reporting with the switch
+the library's docs describe, and remove it afterward. A missing switch is the usual
+reason nothing shows up.
 
 To confirm the test error:
 
@@ -111,7 +120,8 @@ file and line information locally will be worse in production.
 ## Done when
 
 - [ ] Library installed with its default configuration
-- [ ] Test error, sent the way the platform docs say (or triggered by hand when they
+- [ ] Exactly one test error, sent the way the platform docs say (the install command
+      when it sends one; a test command or snippet otherwise; by hand only when the docs
       have no test step), confirmed through the MCP; class, message, and URL reported to
       the user
 - [ ] Temporary trigger, reporting override, and debug logging removed
