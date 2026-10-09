@@ -1,6 +1,6 @@
 schema_version: "1.1"
 name: gs-rails-install-plan
-description: Rails app without Honeybadger; a matching project exists. The agent should use it, get the key, and verify with the library's install or test command.
+description: Rails app without Honeybadger; a matching project exists. The agent should use it, get the key, and verify with exactly one test error, sent by the gem's install command.
 tags: [get-started]
 plugins: ["../.."]
 execution:
