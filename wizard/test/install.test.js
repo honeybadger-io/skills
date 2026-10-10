@@ -8,6 +8,7 @@ import { getAgentTypes } from "add-mcp";
 import { AGENTS, MCP_URL, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
 import {
   copySkills,
+  existingSkills,
   findBin,
   looksLikeProject,
   skillsSource,
@@ -29,6 +30,17 @@ test("copySkills copies only honeybadger-* skills and replaces stale files", () 
   assert.deepEqual(readdirSync(join(dest, "honeybadger-a")), ["SKILL.md"]);
   assert.ok(existsSync(join(dest, "someone-elses")));
   assert.ok(!existsSync(join(dest, "other-skill")));
+});
+
+test("existingSkills lists only our skills already in dest", () => {
+  const src = tmp();
+  mkdirSync(join(src, "honeybadger-a"));
+  mkdirSync(join(src, "honeybadger-b"));
+  const dest = tmp();
+  mkdirSync(join(dest, "honeybadger-a"));
+  mkdirSync(join(dest, "honeybadger-mine"));
+  assert.deepEqual(existingSkills(src, dest), ["honeybadger-a"]);
+  assert.deepEqual(existingSkills(src, join(dest, "missing")), []);
 });
 
 test("copySkills leaves other honeybadger-* skills alone", () => {

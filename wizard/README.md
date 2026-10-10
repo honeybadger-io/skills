@@ -12,8 +12,9 @@ The wizard:
 
 1. Checks that you're in an app directory and that you have no uncommitted changes, and asks before going on if not, so you can review the agent's changes on their own.
 2. Asks which agents to set up: Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, or Pi. Agents with their CLI on your PATH start checked.
-3. Installs the [Honeybadger skills](https://github.com/honeybadger-io/skills) and MCP server for each agent.
-4. Offers to start an agent with the `honeybadger-get-started` skill, which adds Honeybadger to your app and confirms a test error arrives. The agent asks you to log in to Honeybadger in your browser. If you'd rather start it yourself, the wizard prints the prompt to use.
+3. Shows what it will install, including any Honeybadger skills it will overwrite, and asks before going on.
+4. Installs the [Honeybadger skills](https://github.com/honeybadger-io/skills) and MCP server for each agent.
+5. Offers to start an agent with the `honeybadger-get-started` skill, which adds Honeybadger to your app and confirms a test error arrives. The agent asks you to log in to Honeybadger in your browser. If you'd rather start it yourself, the wizard prints the prompt to use.
 
 ## Options
 
@@ -23,8 +24,9 @@ The wizard:
 --no-launch        Install only; don't start an agent
 --dry-run          Print what would run, change nothing
 -y, --yes          Don't ask anything: skip the checks for uncommitted changes
-                   and an app directory, set up the --agent agents (default:
-                   every agent on your PATH), and start the first one
+                   and an app directory and the install confirmation, set up
+                   the --agent agents (default: every agent on your PATH), and
+                   start the first one
 ```
 
 With `--yes` and no terminal, as in CI, the wizard installs but doesn't start an agent.
