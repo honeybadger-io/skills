@@ -98,19 +98,28 @@ export function findAgent(id) {
  *   { title, copySkills: dir }                      - copy the honeybadger-* skills into dir
  *   { title, removeSkills: dir }                    - remove copied honeybadger-* skills
  *   { title, mcp: [agent ids], url }                - register the MCP server with add-mcp
+ *   { title, manual: [bin, ...args] }               - a command for the user to run
  *
  * On US, Claude Code gets the plugin, which updates itself and bundles the US
  * MCP server. The plugin can't point at the EU server, so on EU Claude Code
  * gets copied skills and the EU server instead. The other agents share one
  * copy of the skills in ~/.agents/skills.
+ *
+ * An agent without its CLI on PATH (agent.bin unset) gets files instead of
+ * commands: copied skills and add-mcp for Claude Code, and the command to run
+ * for Amp.
  */
 export function plan(agents, region, home) {
-  const ids = new Set(agents.map((agent) => agent.id));
+  const byId = Object.fromEntries(agents.map((agent) => [agent.id, agent]));
   const url = MCP_URLS[region];
   const steps = [];
+  const mcp = agents.filter((agent) => agent.mcp);
+  const claudeSkills = join(process.env.CLAUDE_CONFIG_DIR ?? join(home, ".claude"), "skills");
 
-  if (ids.has("claude")) {
-    const claudeSkills = join(process.env.CLAUDE_CONFIG_DIR ?? join(home, ".claude"), "skills");
+  if (byId.claude && !byId.claude.bin) {
+    steps.push({ title: "Installing the Honeybadger skills for Claude Code", copySkills: claudeSkills });
+    mcp.unshift({ ...byId.claude, mcp: "claude-code" });
+  } else if (byId.claude) {
     const removeServer = {
       title: "Removing an existing honeybadger MCP server from Claude Code",
       cmd: ["claude", "mcp", "remove", "--scope", "user", "honeybadger"],
@@ -147,7 +156,7 @@ export function plan(agents, region, home) {
     }
   }
 
-  if (ids.has("codex")) {
+  if (byId.codex?.bin) {
     // Codex also reads ~/.agents/skills, so the plugin would load the skills twice.
     steps.push({
       title: "Removing the Honeybadger plugin from Codex",
@@ -164,7 +173,6 @@ export function plan(agents, region, home) {
     });
   }
 
-  const mcp = agents.filter((agent) => agent.mcp);
   if (mcp.length > 0) {
     steps.push({
       title: `Adding the ${region === "eu" ? "EU " : ""}MCP server to ${list(mcp)}`,
@@ -173,7 +181,12 @@ export function plan(agents, region, home) {
     });
   }
 
-  if (ids.has("amp")) {
+  if (byId.amp && !byId.amp.bin) {
+    steps.push({
+      title: "Add the MCP server to Amp",
+      manual: ["amp", "mcp", "add", "honeybadger", url],
+    });
+  } else if (byId.amp) {
     steps.push(
       {
         title: "Removing an existing honeybadger MCP server from Amp",

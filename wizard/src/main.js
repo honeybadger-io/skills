@@ -27,7 +27,7 @@ Options:
   --region <us|eu>   Honeybadger region (default: ask)
   --no-launch        Install only; don't start an agent
   --dry-run          Print what would run, change nothing
-  -y, --yes          Don't ask: set up every agent found and start the first
+  -y, --yes          Don't ask: set up every agent on your PATH and start the first
   -h, --help         Show this help
 `;
 
@@ -89,38 +89,46 @@ async function wizard(argv) {
     if (!go) return stop("Run the wizard again from your app's directory.");
   }
 
-  // Pick the agents.
-  const installed = AGENTS.map((agent) => ({ ...agent, bin: findBin(agent.bins) })).filter(
-    (agent) => agent.bin,
-  );
+  const changes = uncommittedChanges();
+  if (changes.length > 0 && !yes) {
+    const shown = changes.slice(0, 10).join("\n");
+    const more = changes.length > 10 ? `\n...and ${changes.length - 10} more` : "";
+    p.log.warn(
+      `You have uncommitted changes. Your agent will edit files here, so commit or stash them first to review its changes on their own.\n${shown}${more}`,
+    );
+    const go = await ask(() => p.confirm({ message: "Continue anyway?", initialValue: false }));
+    if (!go) return stop("Commit or stash your changes, then run the wizard again.");
+  }
+
+  // Pick the agents. Ones with their CLI on PATH start checked; the others
+  // still work, they just can't be started for you.
+  const all = AGENTS.map((agent) => ({ ...agent, bin: findBin(agent.bins) }));
+  const installed = all.filter((agent) => agent.bin);
   let agents;
   if (requested.length > 0) {
-    agents = [];
-    for (const id of new Set(requested)) {
-      const agent = installed.find((a) => a.id === id);
-      if (!agent) {
-        const { name, bins } = findAgent(id);
-        p.log.error(`${name} isn't installed (no ${bins.join(" or ")} on your PATH).`);
-        return stop(MANUAL, 1);
-      }
-      agents.push(agent);
+    agents = all.filter((agent) => requested.includes(agent.id));
+  } else if (yes) {
+    if (installed.length === 0) {
+      p.log.error(`Couldn't find a supported agent's CLI on your PATH. Pass --agent to pick one.`);
+      return stop(MANUAL, 1);
     }
-  } else if (installed.length === 0) {
-    p.log.error(`Couldn't find a supported agent's CLI on your PATH (${IDS}).`);
-    return stop(MANUAL, 1);
-  } else if (installed.length === 1 || yes) {
     agents = installed;
-    p.log.info(`Found ${agents.map((a) => a.name).join(", ")}.`);
+    p.log.info(`Setting up ${agents.map((a) => a.name).join(", ")}.`);
   } else {
     const ids = await ask(() =>
       p.multiselect({
         message: "Which agents should get Honeybadger?",
-        options: installed.map((a) => ({ value: a.id, label: a.name })),
+        options: all.map((a) => ({
+          value: a.id,
+          label: a.name,
+          hint: a.bin ? undefined : "not found on PATH",
+        })),
         initialValues: installed.map((a) => a.id),
+        required: true,
       }),
     );
     if (ids === undefined) return stop();
-    agents = installed.filter((a) => ids.includes(a.id));
+    agents = all.filter((a) => ids.includes(a.id));
   }
 
   // Pick the region.
@@ -138,7 +146,12 @@ async function wizard(argv) {
   if (region === undefined) return stop();
 
   // Install.
+  const manual = [];
   for (const step of plan(agents, region, homedir())) {
+    if (step.manual) {
+      manual.push(step);
+      continue;
+    }
     if (dryRun) {
       p.log.step(`${step.title}\n${describe(step)}`);
       continue;
@@ -161,6 +174,9 @@ async function wizard(argv) {
   for (const agent of agents) {
     if (agent.note) p.log.warn(agent.note);
   }
+  for (const step of manual) {
+    p.note(step.manual.map(quote).join(" "), `${step.title} by running`);
+  }
 
   if (dryRun) {
     showPrompt(agents);
@@ -182,11 +198,8 @@ async function wizard(argv) {
 
 /** Returns the agent to start, or undefined to print the prompt instead. */
 async function pickLaunch(agents, { skip, yes }) {
-  const launchable = agents.filter((agent) => agent.launch);
+  const launchable = agents.filter((agent) => agent.bin && agent.launch);
   if (skip || launchable.length === 0 || !process.stdin.isTTY) return undefined;
-  if (hasUncommittedChanges()) {
-    p.log.warn("You have uncommitted changes. The agent will edit files in this directory.");
-  }
   if (yes) return launchable[0];
   if (launchable.length === 1) {
     const go = await ask(() =>
@@ -208,7 +221,7 @@ async function pickLaunch(agents, { skip, yes }) {
 
 function showPrompt(agents) {
   const [agent] = agents;
-  if (agents.length === 1 && agent.launch) {
+  if (agents.length === 1 && agent.bin && agent.launch) {
     p.note(`${agent.bin} ${agent.launch(PROMPT).map(quote).join(" ")}`, "Start your agent with");
   } else {
     const names = new Intl.ListFormat("en", { type: "disjunction" }).format(
@@ -232,9 +245,11 @@ function stop(message = "Setup cancelled.", code = 0) {
   return code;
 }
 
-function hasUncommittedChanges() {
+/** `git status --porcelain` lines, or none outside a git repo. */
+function uncommittedChanges() {
   const result = spawn.sync("git", ["status", "--porcelain"], { encoding: "utf8" });
-  return result.status === 0 && result.stdout.trim() !== "";
+  if (result.status !== 0) return [];
+  return result.stdout.split("\n").filter(Boolean);
 }
 
 function run(step) {

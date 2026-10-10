@@ -94,7 +94,7 @@ test("EU never uses the plugin or the US server", () => {
 });
 
 test("US installs the Claude Code plugin and cleans up an EU install", () => {
-  const steps = plan([findAgent("claude")], "us", "/home/me");
+  const steps = plan([{ ...findAgent("claude"), bin: "claude" }], "us", "/home/me");
   assert.ok(steps.some((s) => s.cmd?.join(" ") === `claude plugin install ${PLUGIN}`));
   assert.ok(steps.some((s) => s.removeSkills === join("/home/me", ".claude", "skills")));
   assert.ok(!steps.some((s) => s.copySkills || s.mcp));
@@ -120,5 +120,18 @@ test("add-mcp knows every agent id we pass it", () => {
   const known = getAgentTypes();
   for (const agent of AGENTS.filter((a) => a.mcp)) {
     assert.ok(known.includes(agent.mcp), `add-mcp doesn't know ${agent.mcp}`);
+  }
+});
+
+test("agents picked without their CLI get files, not commands", () => {
+  const agents = AGENTS.map((agent) => ({ ...agent, bin: undefined }));
+  for (const region of ["us", "eu"]) {
+    const steps = plan(agents, region, "/home/me");
+    assert.ok(!steps.some((s) => s.cmd), `${region} runs a command without a CLI`);
+    assert.ok(steps.some((s) => s.copySkills === join("/home/me", ".claude", "skills")));
+    const mcp = steps.find((s) => s.mcp);
+    assert.ok(mcp.mcp.includes("claude-code"));
+    assert.equal(mcp.url, MCP_URLS[region]);
+    assert.deepEqual(steps.find((s) => s.manual)?.manual, ["amp", "mcp", "add", "honeybadger", MCP_URLS[region]]);
   }
 });
