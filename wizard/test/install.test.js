@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { getAgentTypes } from "add-mcp";
-import { AGENTS, MCP_URLS, PLUGIN, findAgent, plan } from "../src/agents.js";
+import { AGENTS, MCP_URLS, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
 import {
   copySkills,
   findBin,
@@ -98,6 +98,11 @@ test("US installs the Claude Code plugin and cleans up an EU install", () => {
   assert.ok(steps.some((s) => s.cmd?.join(" ") === `claude plugin install ${PLUGIN}`));
   assert.ok(steps.some((s) => s.removeSkills === join("/home/me", ".claude", "skills")));
   assert.ok(!steps.some((s) => s.copySkills || s.mcp));
+});
+
+test("the marketplace defaults to the GitHub repo and can point at a checkout", () => {
+  assert.equal(marketplaceSource({}), REPO);
+  assert.equal(marketplaceSource({ HONEYBADGER_WIZARD_MARKETPLACE: "/src/skills" }), "/src/skills");
 });
 
 test("other agents share one copy of the skills and one MCP step", () => {
