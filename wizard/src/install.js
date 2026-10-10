@@ -20,14 +20,24 @@ export function skillsSource() {
   throw new Error("Can't find the Honeybadger skills to install.");
 }
 
+/** The honeybadger-* skills in src. */
+function skillNames(src) {
+  return readdirSync(src, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("honeybadger-"))
+    .map((entry) => entry.name);
+}
+
+/** The skills from src that copySkills would replace in dest. */
+export function existingSkills(src, dest) {
+  return skillNames(src).filter((name) => existsSync(join(dest, name)));
+}
+
 /**
  * Replaces each honeybadger-* skill from src in dest. Other skills in dest,
  * including other honeybadger-* ones, are left alone. Returns the names copied.
  */
 export function copySkills(src, dest) {
-  const names = readdirSync(src, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith("honeybadger-"))
-    .map((entry) => entry.name);
+  const names = skillNames(src);
   mkdirSync(dest, { recursive: true });
   for (const name of names) {
     rmSync(join(dest, name), { recursive: true, force: true });

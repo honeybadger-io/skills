@@ -6,6 +6,7 @@ import { AGENTS, MCP_URL, PROMPT, findAgent, plan } from "./agents.js";
 import {
   addMcpServer,
   copySkills,
+  existingSkills,
   findBin,
   looksLikeProject,
   skillsSource,
@@ -27,8 +28,9 @@ Options:
   --no-launch        Install only; don't start an agent
   --dry-run          Print what would run, change nothing
   -y, --yes          Don't ask anything: skip the checks for uncommitted changes
-                     and an app directory, set up the --agent agents (default:
-                     every agent on your PATH), and start the first one
+                     and an app directory and the install confirmation, set up
+                     the --agent agents (default: every agent on your PATH), and
+                     start the first one
   -h, --help         Show this help
 `;
 
@@ -130,19 +132,20 @@ async function wizard(argv) {
     agents = all.filter((a) => ids.includes(a.id));
   }
 
-  // Install.
-  const manual = [];
+  // Show what will change, then install.
   const claude = agents.find((agent) => agent.id === "claude" && agent.bin);
   const marketplaces = claude ? claudeMarketplaces() : [];
-  for (const step of plan(agents, homedir(), { marketplaces })) {
-    if (step.manual) {
-      manual.push(step);
-      continue;
+  const steps = plan(agents, homedir(), { marketplaces });
+  const manual = steps.filter((step) => step.manual);
+  const auto = steps.filter((step) => !step.manual);
+  if (auto.length > 0) {
+    p.note(auto.map((step) => `${step.title}\n${describe(step)}`).join("\n\n"), "Installation summary");
+    if (!dryRun && !yes) {
+      const go = await ask(() => p.confirm({ message: "Proceed with installation?" }));
+      if (!go) return stop();
     }
-    if (dryRun) {
-      p.log.step(`${step.title}\n${describe(step)}`);
-      continue;
-    }
+  }
+  for (const step of dryRun ? [] : auto) {
     const spin = p.spinner();
     spin.start(step.title);
     try {
@@ -264,8 +267,15 @@ function run(step) {
 }
 
 function describe(step) {
-  if (step.cmd) return `  $ ${step.cmd.map(quote).join(" ")}`;
-  if (step.copySkills) return `  copy the Honeybadger skills to ${step.copySkills}`;
+  if (step.cmd) {
+    const cmd = `  $ ${step.cmd.map(quote).join(" ")}`;
+    return step.ignoreFailure ? `${cmd}  (if present)` : cmd;
+  }
+  if (step.copySkills) {
+    const replaced = existingSkills(skillsSource(), step.copySkills);
+    const copy = `  copy the Honeybadger skills to ${step.copySkills}`;
+    return replaced.length > 0 ? `${copy}\n  overwrites: ${replaced.join(", ")}` : copy;
+  }
   return `  add-mcp: honeybadger = ${MCP_URL} for ${step.mcp.join(", ")}`;
 }
 
