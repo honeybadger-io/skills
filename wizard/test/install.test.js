@@ -5,12 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { getAgentTypes } from "add-mcp";
-import { AGENTS, MCP_URLS, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
+import { AGENTS, MCP_URL, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
 import {
   copySkills,
   findBin,
   looksLikeProject,
-  removeSkills,
   skillsSource,
 } from "../src/install.js";
 
@@ -32,13 +31,14 @@ test("copySkills copies only honeybadger-* skills and replaces stale files", () 
   assert.ok(!existsSync(join(dest, "other-skill")));
 });
 
-test("removeSkills removes only honeybadger-* skills", () => {
-  const dir = tmp();
-  mkdirSync(join(dir, "honeybadger-a"));
-  mkdirSync(join(dir, "someone-elses"));
-  assert.deepEqual(removeSkills(dir), ["honeybadger-a"]);
-  assert.deepEqual(readdirSync(dir), ["someone-elses"]);
-  assert.deepEqual(removeSkills(join(dir, "missing")), []);
+test("copySkills removes retired skills but not other honeybadger-* skills", () => {
+  const src = tmp();
+  mkdirSync(join(src, "honeybadger-new"));
+  const dest = tmp();
+  mkdirSync(join(dest, "honeybadger-old"));
+  mkdirSync(join(dest, "honeybadger-mine"));
+  copySkills(src, dest, ["honeybadger-old"]);
+  assert.deepEqual(readdirSync(dest).sort(), ["honeybadger-mine", "honeybadger-new"]);
 });
 
 // add-mcp reads the home directory when it loads, so this runs in a child
@@ -51,15 +51,15 @@ test("addMcpServer keeps other servers and replaces ours", () => {
   const install = new URL("../src/install.js", import.meta.url).href;
   const script = `
     const { addMcpServer } = await import(${JSON.stringify(install)});
-    addMcpServer(["cursor"], ${JSON.stringify(MCP_URLS.us)});
-    addMcpServer(["cursor"], ${JSON.stringify(MCP_URLS.eu)});
+    addMcpServer(["cursor"], "https://old.example.com/mcp");
+    addMcpServer(["cursor"], ${JSON.stringify(MCP_URL)});
   `;
   execFileSync(process.execPath, ["--input-type=module", "-e", script], {
     env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.deepEqual(JSON.parse(readFileSync(file, "utf8")).mcpServers, {
     other: { url: "https://example.com/mcp" },
-    honeybadger: { url: MCP_URLS.eu },
+    honeybadger: { url: MCP_URL },
   });
 });
 
@@ -84,20 +84,20 @@ test("skillsSource finds the get-started skill", () => {
 
 const everyone = () => AGENTS.map((agent) => ({ ...agent, bin: agent.bins[0] }));
 
-test("EU never uses the plugin or the US server", () => {
-  const steps = plan(everyone(), "eu", "/home/me");
-  const text = JSON.stringify(steps);
-  assert.ok(!text.includes(MCP_URLS.us));
-  assert.ok(text.includes(MCP_URLS.eu));
-  const pluginSteps = steps.filter((s) => s.cmd?.includes(PLUGIN));
-  assert.ok(pluginSteps.length > 0 && pluginSteps.every((s) => s.ignoreFailure), "EU only removes plugins");
+test("Claude Code gets the plugin and nothing else", () => {
+  const steps = plan([{ ...findAgent("claude"), bin: "claude" }], "/home/me", { env: {} });
+  assert.deepEqual(
+    steps.map((s) => s.cmd?.join(" ")),
+    ["claude plugin marketplace add honeybadger-io/skills", `claude plugin install ${PLUGIN}`],
+  );
 });
 
-test("US installs the Claude Code plugin and cleans up an EU install", () => {
-  const steps = plan([{ ...findAgent("claude"), bin: "claude" }], "us", "/home/me");
-  assert.ok(steps.some((s) => s.cmd?.join(" ") === `claude plugin install ${PLUGIN}`));
-  assert.ok(steps.some((s) => s.removeSkills === join("/home/me", ".claude", "skills")));
-  assert.ok(!steps.some((s) => s.copySkills || s.mcp));
+test("Claude Code keeps an existing honeybadger marketplace instead of adding ours", () => {
+  const claude = [{ ...findAgent("claude"), bin: "claude" }];
+  const adds = (marketplaces) =>
+    plan(claude, "/home/me", { marketplaces, env: {} }).filter((s) => s.cmd?.includes("marketplace"));
+  assert.equal(adds([]).length, 1);
+  assert.equal(adds(["honeybadger"]).length, 0);
 });
 
 test("the marketplace defaults to the GitHub repo and can point at a checkout", () => {
@@ -106,14 +106,13 @@ test("the marketplace defaults to the GitHub repo and can point at a checkout", 
 });
 
 test("other agents share one copy of the skills and one MCP step", () => {
-  const steps = plan(everyone(), "us", "/home/me");
+  const steps = plan(everyone(), "/home/me", { env: {} });
   const copies = steps.filter((s) => s.copySkills === join("/home/me", ".agents", "skills"));
   assert.equal(copies.length, 1);
   const mcp = steps.filter((s) => s.mcp);
   assert.equal(mcp.length, 1);
   assert.deepEqual(mcp[0].mcp, AGENTS.filter((a) => a.mcp).map((a) => a.mcp));
-  assert.equal(mcp[0].url, MCP_URLS.us);
-  assert.ok(steps.some((s) => s.cmd?.join(" ") === `amp mcp add honeybadger ${MCP_URLS.us}`));
+  assert.ok(steps.some((s) => s.cmd?.join(" ") === `amp mcp add honeybadger ${MCP_URL}`));
 });
 
 test("add-mcp knows every agent id we pass it", () => {
@@ -123,15 +122,16 @@ test("add-mcp knows every agent id we pass it", () => {
   }
 });
 
-test("agents picked without their CLI get files, not commands", () => {
+test("agents picked without their CLI get files or commands to run, never run anything", () => {
   const agents = AGENTS.map((agent) => ({ ...agent, bin: undefined }));
-  for (const region of ["us", "eu"]) {
-    const steps = plan(agents, region, "/home/me");
-    assert.ok(!steps.some((s) => s.cmd), `${region} runs a command without a CLI`);
-    assert.ok(steps.some((s) => s.copySkills === join("/home/me", ".claude", "skills")));
-    const mcp = steps.find((s) => s.mcp);
-    assert.ok(mcp.mcp.includes("claude-code"));
-    assert.equal(mcp.url, MCP_URLS[region]);
-    assert.deepEqual(steps.find((s) => s.manual)?.manual, ["amp", "mcp", "add", "honeybadger", MCP_URLS[region]]);
-  }
+  const steps = plan(agents, "/home/me", { env: {} });
+  assert.ok(!steps.some((s) => s.cmd));
+  assert.ok(!steps.some((s) => s.copySkills?.includes(".claude")));
+  assert.deepEqual(steps.filter((s) => s.manual).map((s) => s.manual), [
+    [
+      ["claude", "plugin", "marketplace", "add", REPO],
+      ["claude", "plugin", "install", PLUGIN],
+    ],
+    [["amp", "mcp", "add", "honeybadger", MCP_URL]],
+  ]);
 });

@@ -2,13 +2,12 @@ import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
-import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
+import { AGENTS, MCP_URL, PROMPT, findAgent, plan } from "./agents.js";
 import {
   addMcpServer,
   copySkills,
   findBin,
   looksLikeProject,
-  removeSkills,
   skillsSource,
 } from "./install.js";
 
@@ -17,17 +16,19 @@ const IDS = AGENTS.map((agent) => agent.id).join(", ");
 const HELP = `Set up Honeybadger with your coding agent.
 
 Installs the Honeybadger skills and MCP server for your coding agents, then
-starts one to add Honeybadger to the app in this directory.
+starts one to add Honeybadger to the app in this directory. For US accounts;
+EU accounts: https://github.com/honeybadger-io/skills#install
 
 Usage: npx @honeybadger-io/wizard [options]
 
 Options:
   --agent <id>       Agent to set up; repeat for more than one (default: ask)
                      ${IDS}
-  --region <us|eu>   Honeybadger region (default: ask)
   --no-launch        Install only; don't start an agent
   --dry-run          Print what would run, change nothing
-  -y, --yes          Don't ask: set up every agent on your PATH and start the first
+  -y, --yes          Don't ask anything: skip the checks for uncommitted changes
+                     and an app directory, set up the --agent agents (default:
+                     every agent on your PATH), and start the first one
   -h, --help         Show this help
 `;
 
@@ -39,7 +40,7 @@ export async function main(argv) {
     return await wizard(argv);
   } catch (err) {
     if (!(err instanceof NoTerminal)) throw err;
-    p.log.error("No terminal to ask in. Pass --region, plus --agent or --yes.");
+    p.log.error("No terminal to ask in. Pass --yes.");
     return stop("Setup cancelled.", 1);
   }
 }
@@ -51,7 +52,6 @@ async function wizard(argv) {
       args: argv,
       options: {
         agent: { type: "string", multiple: true },
-        region: { type: "string" },
         "no-launch": { type: "boolean" },
         "dry-run": { type: "boolean" },
         yes: { type: "boolean", short: "y" },
@@ -72,14 +72,13 @@ async function wizard(argv) {
     console.error(`Unknown agent "${unknown}". Use one of: ${IDS}.`);
     return 1;
   }
-  if (args.region && !["us", "eu"].includes(args.region)) {
-    console.error(`Unknown region "${args.region}". Use us or eu.`);
-    return 1;
-  }
   const dryRun = args["dry-run"];
   const yes = args.yes;
 
   p.intro("Honeybadger setup");
+  p.log.info(
+    "This sets up Honeybadger for US accounts (app.honeybadger.io). For an EU account, see https://github.com/honeybadger-io/skills#install",
+  );
 
   if (!looksLikeProject(process.cwd()) && !yes) {
     p.log.warn("This doesn't look like an app directory.");
@@ -131,23 +130,11 @@ async function wizard(argv) {
     agents = all.filter((a) => ids.includes(a.id));
   }
 
-  // Pick the region.
-  const region =
-    args.region ??
-    (await ask(() =>
-      p.select({
-        message: "Which Honeybadger region is your account in?",
-        options: [
-          { value: "us", label: "US", hint: "app.honeybadger.io, the default" },
-          { value: "eu", label: "EU", hint: "eu-app.honeybadger.io" },
-        ],
-      }),
-    ));
-  if (region === undefined) return stop();
-
   // Install.
   const manual = [];
-  for (const step of plan(agents, region, homedir())) {
+  const claude = agents.find((agent) => agent.id === "claude" && agent.bin);
+  const marketplaces = claude ? claudeMarketplaces() : [];
+  for (const step of plan(agents, homedir(), { marketplaces })) {
     if (step.manual) {
       manual.push(step);
       continue;
@@ -171,11 +158,8 @@ async function wizard(argv) {
       return stop("Setup didn't finish. Fix the error above and run the wizard again.", 1);
     }
   }
-  for (const agent of agents) {
-    if (agent.note) p.log.warn(agent.note);
-  }
   for (const step of manual) {
-    p.note(step.manual.map(quote).join(" "), `${step.title} by running`);
+    p.note(step.manual.map((cmd) => cmd.map(quote).join(" ")).join("\n"), `${step.title} by running`);
   }
 
   if (dryRun) {
@@ -252,6 +236,17 @@ function uncommittedChanges() {
   return result.stdout.split("\n").filter(Boolean);
 }
 
+/** Names of Claude Code's marketplaces, or none if it can't list them. */
+function claudeMarketplaces() {
+  const result = spawn.sync("claude", ["plugin", "marketplace", "list", "--json"], { encoding: "utf8" });
+  if (result.status !== 0) return [];
+  try {
+    return JSON.parse(result.stdout).map((marketplace) => marketplace.name);
+  } catch {
+    return [];
+  }
+}
+
 function run(step) {
   if (step.cmd) {
     const [bin, ...rest] = step.cmd;
@@ -263,18 +258,15 @@ function run(step) {
     }
   } else if (step.copySkills) {
     copySkills(skillsSource(), step.copySkills);
-  } else if (step.removeSkills) {
-    removeSkills(step.removeSkills);
   } else if (step.mcp) {
-    addMcpServer(step.mcp, step.url);
+    addMcpServer(step.mcp, MCP_URL);
   }
 }
 
 function describe(step) {
   if (step.cmd) return `  $ ${step.cmd.map(quote).join(" ")}`;
-  if (step.copySkills) return `  copy honeybadger-* skills to ${step.copySkills}`;
-  if (step.removeSkills) return `  remove honeybadger-* skills from ${step.removeSkills}`;
-  return `  add-mcp: honeybadger = ${step.url} for ${step.mcp.join(", ")}`;
+  if (step.copySkills) return `  copy the Honeybadger skills to ${step.copySkills}`;
+  return `  add-mcp: honeybadger = ${MCP_URL} for ${step.mcp.join(", ")}`;
 }
 
 function quote(arg) {
