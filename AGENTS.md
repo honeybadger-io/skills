@@ -17,6 +17,7 @@ plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) man
 .mcp.json                       # MCP server config used by Claude Code and Codex
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
+wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, offers to start the agent
 ```
 
 ## Writing skills
@@ -27,7 +28,7 @@ evals/                          # claude plugin eval suite: mock Honeybadger ser
 - Keep `SKILL.md` short. Move long detail into `references/` and link to it from `SKILL.md`.
 - Do not copy the docs. Link to https://docs.honeybadger.io, and use the MCP server's `get_reference` tool for BadgerQL, dashboards, alarms, and check-ins.
 - Use the MCP tools for live data. Name the exact tool (for example `list_faults`, `get_fault`).
-- Remember EU accounts. Anything that uses a hostname must also work for the EU region (`app.honeybadger.eu`, `eu-mcp.honeybadger.io`).
+- Remember EU accounts. Anything that uses a hostname must also work for the EU region (`eu-app.honeybadger.io`, `eu-mcp.honeybadger.io`).
 
 ## Versioning
 
@@ -38,6 +39,10 @@ The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`
 Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
 `docs:`, `chore:`, `refactor:`, `test:`. Scope is optional and is usually the skill name
 (`fix(get-started): ...`). Imperative subject, no trailing period.
+
+## Wizard
+
+`wizard/` is the npm package `@honeybadger-io/wizard`. It publishes a copy of `skills/`, so a skill change reaches wizard users only after a new wizard release. When you rename a skill, the plugin, or the marketplace, update `wizard/src/agents.js` to match. The wizard doesn't remove a renamed skill's old folder from users' machines, so a rename needs a plan for that. Run `npm test` in `wizard/` after changing it.
 
 ## Checks
 

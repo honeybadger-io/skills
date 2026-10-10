@@ -1,0 +1,4 @@
+node_modules/
+# Copied in by `npm pack` (scripts/bundle-skills.js)
+skills/
+LICENSE
