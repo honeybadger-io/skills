@@ -6,6 +6,16 @@ Works with Claude Code, Codex, Cursor, and any agent that supports the [Agent Pl
 
 ## Install
 
+### Wizard
+
+Run this in your app's directory:
+
+```
+npx @honeybadger-io/wizard
+```
+
+It installs the skills and MCP server for Claude Code, Codex, or Cursor, then starts your agent to add Honeybadger to the app. See [wizard/](wizard/) for what it changes.
+
 ### Claude Code
 
 ```
