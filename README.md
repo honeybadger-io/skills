@@ -14,7 +14,7 @@ Run this in your app's directory:
 npx @honeybadger-io/wizard
 ```
 
-It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes.
+It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes. The wizard is for US accounts; for an EU account, use the steps below.
 
 ### Claude Code
 

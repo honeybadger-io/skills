@@ -28,7 +28,7 @@ wizard/                         # npx @honeybadger-io/wizard: installs the skill
 - Keep `SKILL.md` short. Move long detail into `references/` and link to it from `SKILL.md`.
 - Do not copy the docs. Link to https://docs.honeybadger.io, and use the MCP server's `get_reference` tool for BadgerQL, dashboards, alarms, and check-ins.
 - Use the MCP tools for live data. Name the exact tool (for example `list_faults`, `get_fault`).
-- Remember EU accounts. Anything that uses a hostname must also work for the EU region (`app.honeybadger.eu`, `eu-mcp.honeybadger.io`).
+- Remember EU accounts. Anything that uses a hostname must also work for the EU region (`eu-app.honeybadger.io`, `eu-mcp.honeybadger.io`).
 
 ## Versioning
 

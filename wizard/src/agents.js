@@ -1,9 +1,6 @@
 import { join } from "node:path";
 
-export const MCP_URLS = {
-  us: "https://mcp.honeybadger.io/mcp",
-  eu: "https://eu-mcp.honeybadger.io/mcp",
-};
+export const MCP_URL = "https://mcp.honeybadger.io/mcp";
 
 export const REPO = "honeybadger-io/skills";
 
@@ -12,7 +9,8 @@ export const REPO = "honeybadger-io/skills";
 export function marketplaceSource(env = process.env) {
   return env.HONEYBADGER_WIZARD_MARKETPLACE || REPO;
 }
-export const PLUGIN = "honeybadger@honeybadger";
+export const MARKETPLACE = "honeybadger";
+export const PLUGIN = `honeybadger@${MARKETPLACE}`;
 
 // Plain English instead of a slash command, so it works the same in every agent.
 export const PROMPT =
@@ -24,8 +22,7 @@ export const PROMPT =
  *   bins    - CLI names to look for on PATH, in order
  *   mcp     - add-mcp's agent id, if add-mcp can register the MCP server
  *   launch  - args that start the agent interactively with a prompt; null if
- *             it can't take one
- *   note    - shown after installing
+ *             the wizard can't start it
  *
  * Every agent but Claude Code reads skills from ~/.agents/skills.
  */
@@ -84,7 +81,6 @@ export const AGENTS = [
     bins: ["pi"],
     mcp: "pi",
     launch: (prompt) => [prompt],
-    note: "Pi needs an extension to use MCP servers: pi install npm:pi-mcp-adapter",
   },
 ];
 
@@ -95,65 +91,44 @@ export function findAgent(id) {
 /**
  * The steps that install Honeybadger for the chosen agents. A step is one of:
  *   { title, cmd: [bin, ...args], ignoreFailure? }  - run a command
- *   { title, copySkills: dir }                      - copy the honeybadger-* skills into dir
- *   { title, removeSkills: dir }                    - remove copied honeybadger-* skills
- *   { title, mcp: [agent ids], url }                - register the MCP server with add-mcp
- *   { title, manual: [bin, ...args] }               - a command for the user to run
+ *   { title, copySkills: dir }                      - copy the Honeybadger skills into dir
+ *   { title, mcp: [agent ids] }                     - register the MCP server with add-mcp
+ *   { title, manual: [[bin, ...args], ...] }        - commands for the user to run
  *
- * On US, Claude Code gets the plugin, which updates itself and bundles the US
- * MCP server. The plugin can't point at the EU server, so on EU Claude Code
- * gets copied skills and the EU server instead. The other agents share one
- * copy of the skills in ~/.agents/skills.
+ * Claude Code gets the plugin, which bundles the MCP server. The other agents
+ * share one copy of the skills in ~/.agents/skills.
  *
- * An agent without its CLI on PATH (agent.bin unset) gets files instead of
- * commands: copied skills and add-mcp for Claude Code, and the command to run
- * for Amp.
+ * An agent without its CLI on PATH (agent.bin unset) gets files where it can:
+ * copied skills and add-mcp. Claude Code and Amp need their CLI, so they get
+ * the commands to run instead.
+ *
+ * marketplaces is the names of Claude Code's marketplaces. If one is already
+ * called honeybadger, the plugin installs from it: adding ours would fail when
+ * its source differs, such as a local checkout.
  */
-export function plan(agents, region, home) {
+export function plan(agents, home, { marketplaces = [], env = process.env } = {}) {
   const byId = Object.fromEntries(agents.map((agent) => [agent.id, agent]));
-  const url = MCP_URLS[region];
   const steps = [];
-  const mcp = agents.filter((agent) => agent.mcp);
-  const claudeSkills = join(process.env.CLAUDE_CONFIG_DIR ?? join(home, ".claude"), "skills");
 
   if (byId.claude && !byId.claude.bin) {
-    steps.push({ title: "Installing the Honeybadger skills for Claude Code", copySkills: claudeSkills });
-    mcp.unshift({ ...byId.claude, mcp: "claude-code" });
+    steps.push({
+      title: "Install the Honeybadger plugin in Claude Code",
+      manual: [
+        ["claude", "plugin", "marketplace", "add", marketplaceSource(env)],
+        ["claude", "plugin", "install", PLUGIN],
+      ],
+    });
   } else if (byId.claude) {
-    const removeServer = {
-      title: "Removing an existing honeybadger MCP server from Claude Code",
-      cmd: ["claude", "mcp", "remove", "--scope", "user", "honeybadger"],
-      ignoreFailure: true,
-    };
-    if (region === "us") {
-      steps.push(
-        {
-          title: "Adding the Honeybadger marketplace to Claude Code",
-          cmd: ["claude", "plugin", "marketplace", "add", marketplaceSource()],
-        },
-        {
-          title: "Installing the Honeybadger plugin in Claude Code",
-          cmd: ["claude", "plugin", "install", PLUGIN],
-        },
-        // Left over from an EU install; the plugin replaces both.
-        { title: "Removing copied skills from Claude Code", removeSkills: claudeSkills },
-        removeServer,
-      );
-    } else {
-      steps.push(
-        {
-          title: "Removing the US Honeybadger plugin from Claude Code",
-          cmd: ["claude", "plugin", "uninstall", PLUGIN],
-          ignoreFailure: true,
-        },
-        { title: "Installing the Honeybadger skills for Claude Code", copySkills: claudeSkills },
-        removeServer,
-        {
-          title: "Adding the EU MCP server to Claude Code",
-          cmd: ["claude", "mcp", "add", "--scope", "user", "--transport", "http", "honeybadger", url],
-        },
-      );
+    if (!marketplaces.includes(MARKETPLACE)) {
+      steps.push({
+        title: "Adding the Honeybadger marketplace to Claude Code",
+        cmd: ["claude", "plugin", "marketplace", "add", marketplaceSource(env)],
+      });
     }
+    steps.push({
+      title: "Installing the Honeybadger plugin in Claude Code",
+      cmd: ["claude", "plugin", "install", PLUGIN],
+    });
   }
 
   if (byId.codex?.bin) {
@@ -173,18 +148,18 @@ export function plan(agents, region, home) {
     });
   }
 
+  const mcp = agents.filter((agent) => agent.mcp);
   if (mcp.length > 0) {
     steps.push({
-      title: `Adding the ${region === "eu" ? "EU " : ""}MCP server to ${list(mcp)}`,
+      title: `Adding the MCP server to ${list(mcp)}`,
       mcp: mcp.map((agent) => agent.mcp),
-      url,
     });
   }
 
   if (byId.amp && !byId.amp.bin) {
     steps.push({
       title: "Add the MCP server to Amp",
-      manual: ["amp", "mcp", "add", "honeybadger", url],
+      manual: [["amp", "mcp", "add", "honeybadger", MCP_URL]],
     });
   } else if (byId.amp) {
     steps.push(
@@ -194,8 +169,8 @@ export function plan(agents, region, home) {
         ignoreFailure: true,
       },
       {
-        title: `Adding the ${region === "eu" ? "EU " : ""}MCP server to Amp`,
-        cmd: ["amp", "mcp", "add", "honeybadger", url],
+        title: "Adding the MCP server to Amp",
+        cmd: ["amp", "mcp", "add", "honeybadger", MCP_URL],
       },
     );
   }
