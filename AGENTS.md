@@ -17,6 +17,7 @@ plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) man
 .mcp.json                       # MCP server config used by Claude Code and Codex
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
+wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, starts the agent
 ```
 
 ## Writing skills
@@ -38,6 +39,10 @@ The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`
 Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
 `docs:`, `chore:`, `refactor:`, `test:`. Scope is optional and is usually the skill name
 (`fix(get-started): ...`). Imperative subject, no trailing period.
+
+## Wizard
+
+`wizard/` is the npm package `@honeybadger-io/wizard`. It publishes a copy of `skills/`, so a skill change reaches wizard users only after a new wizard release. When you rename a skill, the plugin, or the marketplace, update `wizard/src/agents.js` to match. Run `npm test` in `wizard/` after changing it.
 
 ## Checks
 
