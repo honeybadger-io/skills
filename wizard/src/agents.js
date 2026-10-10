@@ -6,6 +6,12 @@ export const MCP_URLS = {
 };
 
 export const REPO = "honeybadger-io/skills";
+
+// Where Claude Code gets the marketplace. Tests point it at a local checkout so
+// an unreleased plugin can be installed end to end; users never set this.
+export function marketplaceSource(env = process.env) {
+  return env.HONEYBADGER_WIZARD_MARKETPLACE || REPO;
+}
 export const PLUGIN = "honeybadger@honeybadger";
 
 // Plain English instead of a slash command, so it works the same in every agent.
@@ -114,7 +120,7 @@ export function plan(agents, region, home) {
       steps.push(
         {
           title: "Adding the Honeybadger marketplace to Claude Code",
-          cmd: ["claude", "plugin", "marketplace", "add", REPO],
+          cmd: ["claude", "plugin", "marketplace", "add", marketplaceSource()],
         },
         {
           title: "Installing the Honeybadger plugin in Claude Code",
