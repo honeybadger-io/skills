@@ -31,14 +31,13 @@ test("copySkills copies only honeybadger-* skills and replaces stale files", () 
   assert.ok(!existsSync(join(dest, "other-skill")));
 });
 
-test("copySkills removes retired skills but not other honeybadger-* skills", () => {
+test("copySkills leaves other honeybadger-* skills alone", () => {
   const src = tmp();
-  mkdirSync(join(src, "honeybadger-new"));
+  mkdirSync(join(src, "honeybadger-a"));
   const dest = tmp();
-  mkdirSync(join(dest, "honeybadger-old"));
   mkdirSync(join(dest, "honeybadger-mine"));
-  copySkills(src, dest, ["honeybadger-old"]);
-  assert.deepEqual(readdirSync(dest).sort(), ["honeybadger-mine", "honeybadger-new"]);
+  copySkills(src, dest);
+  assert.deepEqual(readdirSync(dest).sort(), ["honeybadger-a", "honeybadger-mine"]);
 });
 
 // add-mcp reads the home directory when it loads, so this runs in a child

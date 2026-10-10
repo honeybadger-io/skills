@@ -20,26 +20,15 @@ export function skillsSource() {
   throw new Error("Can't find the Honeybadger skills to install.");
 }
 
-// Skills we used to ship. Add a skill's old name here when you rename or
-// remove it, so the wizard cleans it up instead of leaving it installed.
-export const RETIRED_SKILLS = [];
-
-/** The honeybadger-* skills in src. */
-function skillNames(src) {
-  return readdirSync(src, { withFileTypes: true })
+/**
+ * Replaces each honeybadger-* skill from src in dest. Other skills in dest,
+ * including other honeybadger-* ones, are left alone. Returns the names copied.
+ */
+export function copySkills(src, dest) {
+  const names = readdirSync(src, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name.startsWith("honeybadger-"))
     .map((entry) => entry.name);
-}
-
-/**
- * Replaces each skill from src in dest and removes retired ones. Other
- * honeybadger-* skills in dest are left alone; they aren't ours. Returns the
- * names copied.
- */
-export function copySkills(src, dest, retired = RETIRED_SKILLS) {
-  const names = skillNames(src);
   mkdirSync(dest, { recursive: true });
-  for (const name of retired) rmSync(join(dest, name), { recursive: true, force: true });
   for (const name of names) {
     rmSync(join(dest, name), { recursive: true, force: true });
     cpSync(join(src, name), join(dest, name), { recursive: true });
