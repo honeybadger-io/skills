@@ -30,6 +30,16 @@ const MANUAL = `Install one of Claude Code, Codex, or Cursor's CLI and run this 
 or set up your agent by hand: https://github.com/honeybadger-io/skills#install`;
 
 export async function main(argv) {
+  try {
+    return await wizard(argv);
+  } catch (err) {
+    if (!(err instanceof NoTerminal)) throw err;
+    p.log.error("No terminal to ask in. Pass --agent and --region.");
+    return stop("Setup cancelled.", 1);
+  }
+}
+
+async function wizard(argv) {
   let args;
   try {
     ({ values: args } = parseArgs({
@@ -159,12 +169,11 @@ export async function main(argv) {
   return result.status ?? 1;
 }
 
+class NoTerminal extends Error {}
+
 /** Runs a prompt; returns undefined if the user cancels (Ctrl-C). */
 async function ask(prompt) {
-  if (!process.stdin.isTTY) {
-    p.log.error("No terminal to ask in. Pass --agent and --region.");
-    return undefined;
-  }
+  if (!process.stdin.isTTY) throw new NoTerminal();
   const answer = await prompt();
   return p.isCancel(answer) ? undefined : answer;
 }
