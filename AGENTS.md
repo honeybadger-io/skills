@@ -17,7 +17,7 @@ plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) man
 .mcp.json                       # MCP server config used by Claude Code and Codex
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
-wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, starts the agent
+wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, offers to start the agent
 ```
 
 ## Writing skills

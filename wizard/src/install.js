@@ -5,12 +5,11 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { upsertServer } from "add-mcp";
 
 /** The skills to install: bundled in the package, or the repo's own when run from a checkout. */
 export function skillsSource() {
@@ -34,19 +33,22 @@ export function copySkills(src, dest) {
   return names;
 }
 
-/** Sets mcpServers.honeybadger in a JSON MCP config, keeping the other servers. */
-export function addMcpServer(file, url) {
-  let config = {};
-  if (existsSync(file)) {
-    try {
-      config = JSON.parse(readFileSync(file, "utf8"));
-    } catch {
-      throw new Error(`${file} isn't valid JSON. Fix it, then run the wizard again.`);
+/** Removes the honeybadger-* skills from dir. Returns the names removed. */
+export function removeSkills(dir) {
+  if (!existsSync(dir)) return [];
+  const names = readdirSync(dir).filter((name) => name.startsWith("honeybadger-"));
+  for (const name of names) rmSync(join(dir, name), { recursive: true, force: true });
+  return names;
+}
+
+/** Registers the honeybadger MCP server with each add-mcp agent, replacing an existing one. */
+export function addMcpServer(agents, url) {
+  for (const agent of agents) {
+    const result = upsertServer(agent, "honeybadger", { type: "http", url });
+    if (!result.success) {
+      throw new Error(`Couldn't update ${result.path}: ${result.error}`);
     }
   }
-  config.mcpServers = { ...config.mcpServers, honeybadger: { url } };
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify(config, null, 2) + "\n");
 }
 
 /** Returns the first of bins found on PATH, or undefined. */
