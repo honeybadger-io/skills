@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { AGENTS, MCP_URLS, PLUGIN } from "../src/agents.js";
-import { addMcpServer, copySkills, findBin, looksLikeProject, skillsSource } from "../src/install.js";
+import { getAgentTypes } from "add-mcp";
+import { AGENTS, MCP_URLS, PLUGIN, findAgent, plan } from "../src/agents.js";
+import {
+  copySkills,
+  findBin,
+  looksLikeProject,
+  removeSkills,
+  skillsSource,
+} from "../src/install.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "hb-wizard-"));
 
@@ -24,25 +32,35 @@ test("copySkills copies only honeybadger-* skills and replaces stale files", () 
   assert.ok(!existsSync(join(dest, "other-skill")));
 });
 
-test("addMcpServer keeps other servers and replaces ours", () => {
-  const file = join(tmp(), ".cursor", "mcp.json");
-  addMcpServer(file, MCP_URLS.us);
-  const config = JSON.parse(readFileSync(file, "utf8"));
-  config.mcpServers.other = { url: "https://example.com/mcp" };
-  writeFileSync(file, JSON.stringify(config));
+test("removeSkills removes only honeybadger-* skills", () => {
+  const dir = tmp();
+  mkdirSync(join(dir, "honeybadger-a"));
+  mkdirSync(join(dir, "someone-elses"));
+  assert.deepEqual(removeSkills(dir), ["honeybadger-a"]);
+  assert.deepEqual(readdirSync(dir), ["someone-elses"]);
+  assert.deepEqual(removeSkills(join(dir, "missing")), []);
+});
 
-  addMcpServer(file, MCP_URLS.eu);
+// add-mcp reads the home directory when it loads, so this runs in a child
+// process with HOME pointed at a temp dir, away from your real configs.
+test("addMcpServer keeps other servers and replaces ours", () => {
+  const home = tmp();
+  const file = join(home, ".cursor", "mcp.json");
+  mkdirSync(join(home, ".cursor"));
+  writeFileSync(file, JSON.stringify({ mcpServers: { other: { url: "https://example.com/mcp" } } }));
+  const install = new URL("../src/install.js", import.meta.url).href;
+  const script = `
+    const { addMcpServer } = await import(${JSON.stringify(install)});
+    addMcpServer(["cursor"], ${JSON.stringify(MCP_URLS.us)});
+    addMcpServer(["cursor"], ${JSON.stringify(MCP_URLS.eu)});
+  `;
+  execFileSync(process.execPath, ["--input-type=module", "-e", script], {
+    env: { ...process.env, HOME: home, USERPROFILE: home },
+  });
   assert.deepEqual(JSON.parse(readFileSync(file, "utf8")).mcpServers, {
     other: { url: "https://example.com/mcp" },
     honeybadger: { url: MCP_URLS.eu },
   });
-});
-
-test("addMcpServer refuses to overwrite invalid JSON", () => {
-  const file = join(tmp(), "mcp.json");
-  writeFileSync(file, "{ nope");
-  assert.throws(() => addMcpServer(file, MCP_URLS.us), /isn't valid JSON/);
-  assert.equal(readFileSync(file, "utf8"), "{ nope");
 });
 
 test("findBin returns the first bin on PATH", { skip: process.platform === "win32" }, () => {
@@ -64,21 +82,38 @@ test("skillsSource finds the get-started skill", () => {
   assert.ok(existsSync(join(skillsSource(), "honeybadger-get-started", "SKILL.md")));
 });
 
-test("US installs the plugin; EU removes it and uses the EU server", () => {
-  for (const agent of AGENTS) {
-    const us = agent.steps("us", "/home/me");
-    const eu = agent.steps("eu", "/home/me");
-    const usText = JSON.stringify(us);
-    const euText = JSON.stringify(eu);
+const everyone = () => AGENTS.map((agent) => ({ ...agent, bin: agent.bins[0] }));
 
-    assert.ok(!euText.includes(MCP_URLS.us), `${agent.id} EU mentions the US server`);
-    assert.ok(euText.includes(MCP_URLS.eu), `${agent.id} EU doesn't add the EU server`);
-    if (agent.id === "cursor") {
-      assert.ok(usText.includes(MCP_URLS.us));
-    } else {
-      assert.ok(us.some((s) => s.cmd?.includes(PLUGIN)), `${agent.id} US doesn't install the plugin`);
-      const removal = eu.find((s) => s.cmd?.includes(PLUGIN));
-      assert.ok(removal?.ignoreFailure, `${agent.id} EU doesn't remove the plugin`);
-    }
+test("EU never uses the plugin or the US server", () => {
+  const steps = plan(everyone(), "eu", "/home/me");
+  const text = JSON.stringify(steps);
+  assert.ok(!text.includes(MCP_URLS.us));
+  assert.ok(text.includes(MCP_URLS.eu));
+  const pluginSteps = steps.filter((s) => s.cmd?.includes(PLUGIN));
+  assert.ok(pluginSteps.length > 0 && pluginSteps.every((s) => s.ignoreFailure), "EU only removes plugins");
+});
+
+test("US installs the Claude Code plugin and cleans up an EU install", () => {
+  const steps = plan([findAgent("claude")], "us", "/home/me");
+  assert.ok(steps.some((s) => s.cmd?.join(" ") === `claude plugin install ${PLUGIN}`));
+  assert.ok(steps.some((s) => s.removeSkills === join("/home/me", ".claude", "skills")));
+  assert.ok(!steps.some((s) => s.copySkills || s.mcp));
+});
+
+test("other agents share one copy of the skills and one MCP step", () => {
+  const steps = plan(everyone(), "us", "/home/me");
+  const copies = steps.filter((s) => s.copySkills === join("/home/me", ".agents", "skills"));
+  assert.equal(copies.length, 1);
+  const mcp = steps.filter((s) => s.mcp);
+  assert.equal(mcp.length, 1);
+  assert.deepEqual(mcp[0].mcp, AGENTS.filter((a) => a.mcp).map((a) => a.mcp));
+  assert.equal(mcp[0].url, MCP_URLS.us);
+  assert.ok(steps.some((s) => s.cmd?.join(" ") === `amp mcp add honeybadger ${MCP_URLS.us}`));
+});
+
+test("add-mcp knows every agent id we pass it", () => {
+  const known = getAgentTypes();
+  for (const agent of AGENTS.filter((a) => a.mcp)) {
+    assert.ok(known.includes(agent.mcp), `add-mcp doesn't know ${agent.mcp}`);
   }
 });

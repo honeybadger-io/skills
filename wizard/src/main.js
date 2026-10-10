@@ -2,39 +2,44 @@ import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
-import { AGENTS, PROMPT, findAgent } from "./agents.js";
+import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
 import {
   addMcpServer,
   copySkills,
   findBin,
   looksLikeProject,
+  removeSkills,
   skillsSource,
 } from "./install.js";
 
+const IDS = AGENTS.map((agent) => agent.id).join(", ");
+
 const HELP = `Set up Honeybadger with your coding agent.
 
-Installs the Honeybadger skills and MCP server for Claude Code, Codex, or
-Cursor, then starts the agent to add Honeybadger to the app in this directory.
+Installs the Honeybadger skills and MCP server for your coding agents, then
+starts one to add Honeybadger to the app in this directory.
 
 Usage: npx @honeybadger-io/wizard [options]
 
 Options:
-  --agent <claude|codex|cursor>  Agent to set up (default: ask)
-  --region <us|eu>               Honeybadger region (default: ask)
-  --no-launch                    Install only; don't start the agent
-  --dry-run                      Print what would run, change nothing
-  -h, --help                     Show this help
+  --agent <id>       Agent to set up; repeat for more than one (default: ask)
+                     ${IDS}
+  --region <us|eu>   Honeybadger region (default: ask)
+  --no-launch        Install only; don't start an agent
+  --dry-run          Print what would run, change nothing
+  -y, --yes          Don't ask: set up every agent found and start the first
+  -h, --help         Show this help
 `;
 
-const MANUAL = `Install one of Claude Code, Codex, or Cursor's CLI and run this again,
-or set up your agent by hand: https://github.com/honeybadger-io/skills#install`;
+const MANUAL = `Install a supported agent's CLI and run this again, or set up your
+agent by hand: https://github.com/honeybadger-io/skills#install`;
 
 export async function main(argv) {
   try {
     return await wizard(argv);
   } catch (err) {
     if (!(err instanceof NoTerminal)) throw err;
-    p.log.error("No terminal to ask in. Pass --agent and --region.");
+    p.log.error("No terminal to ask in. Pass --region, plus --agent or --yes.");
     return stop("Setup cancelled.", 1);
   }
 }
@@ -45,10 +50,11 @@ async function wizard(argv) {
     ({ values: args } = parseArgs({
       args: argv,
       options: {
-        agent: { type: "string" },
+        agent: { type: "string", multiple: true },
         region: { type: "string" },
         "no-launch": { type: "boolean" },
         "dry-run": { type: "boolean" },
+        yes: { type: "boolean", short: "y" },
         help: { type: "boolean", short: "h" },
       },
     }));
@@ -60,8 +66,10 @@ async function wizard(argv) {
     console.log(HELP);
     return 0;
   }
-  if (args.agent && !findAgent(args.agent)) {
-    console.error(`Unknown agent "${args.agent}". Use claude, codex, or cursor.`);
+  const requested = (args.agent ?? []).flatMap((value) => value.split(","));
+  const unknown = requested.find((id) => !findAgent(id));
+  if (unknown) {
+    console.error(`Unknown agent "${unknown}". Use one of: ${IDS}.`);
     return 1;
   }
   if (args.region && !["us", "eu"].includes(args.region)) {
@@ -69,11 +77,11 @@ async function wizard(argv) {
     return 1;
   }
   const dryRun = args["dry-run"];
-  const launch = !args["no-launch"];
+  const yes = args.yes;
 
   p.intro("Honeybadger setup");
 
-  if (!looksLikeProject(process.cwd())) {
+  if (!looksLikeProject(process.cwd()) && !yes) {
     p.log.warn("This doesn't look like an app directory.");
     const go = await ask(() =>
       p.confirm({ message: "Set up Honeybadger here anyway?", initialValue: false }),
@@ -81,33 +89,38 @@ async function wizard(argv) {
     if (!go) return stop("Run the wizard again from your app's directory.");
   }
 
-  // Pick the agent.
+  // Pick the agents.
   const installed = AGENTS.map((agent) => ({ ...agent, bin: findBin(agent.bins) })).filter(
     (agent) => agent.bin,
   );
-  let agent;
-  if (args.agent) {
-    agent = installed.find((a) => a.id === args.agent);
-    if (!agent) {
-      const { name, bins } = findAgent(args.agent);
-      p.log.error(`${name} isn't installed (no ${bins.join(" or ")} on your PATH).`);
-      return stop(MANUAL, 1);
+  let agents;
+  if (requested.length > 0) {
+    agents = [];
+    for (const id of new Set(requested)) {
+      const agent = installed.find((a) => a.id === id);
+      if (!agent) {
+        const { name, bins } = findAgent(id);
+        p.log.error(`${name} isn't installed (no ${bins.join(" or ")} on your PATH).`);
+        return stop(MANUAL, 1);
+      }
+      agents.push(agent);
     }
   } else if (installed.length === 0) {
-    p.log.error("Couldn't find Claude Code, Codex, or Cursor's CLI on your PATH.");
+    p.log.error(`Couldn't find a supported agent's CLI on your PATH (${IDS}).`);
     return stop(MANUAL, 1);
-  } else if (installed.length === 1) {
-    agent = installed[0];
-    p.log.info(`Found ${agent.name}.`);
+  } else if (installed.length === 1 || yes) {
+    agents = installed;
+    p.log.info(`Found ${agents.map((a) => a.name).join(", ")}.`);
   } else {
-    const id = await ask(() =>
-      p.select({
-        message: "Which agent should set up Honeybadger?",
+    const ids = await ask(() =>
+      p.multiselect({
+        message: "Which agents should get Honeybadger?",
         options: installed.map((a) => ({ value: a.id, label: a.name })),
+        initialValues: installed.map((a) => a.id),
       }),
     );
-    if (id === undefined) return stop();
-    agent = installed.find((a) => a.id === id);
+    if (ids === undefined) return stop();
+    agents = installed.filter((a) => ids.includes(a.id));
   }
 
   // Pick the region.
@@ -125,19 +138,9 @@ async function wizard(argv) {
   if (region === undefined) return stop();
 
   // Install.
-  const steps = agent.steps(region, homedir());
-  for (const step of steps) {
+  for (const step of plan(agents, region, homedir())) {
     if (dryRun) {
       p.log.step(`${step.title}\n${describe(step)}`);
-      continue;
-    }
-    if (step.interactive) {
-      p.log.step(`${step.title}. Log in to Honeybadger in your browser when it opens.`);
-      const result = spawn.sync(step.cmd[0], step.cmd.slice(1), { stdio: "inherit" });
-      if (result.status !== 0) {
-        p.log.error(`\`${step.cmd.join(" ")}\` failed.`);
-        return stop("Setup didn't finish. Fix the error above and run the wizard again.", 1);
-      }
       continue;
     }
     const spin = p.spinner();
@@ -155,18 +158,64 @@ async function wizard(argv) {
       return stop("Setup didn't finish. Fix the error above and run the wizard again.", 1);
     }
   }
+  for (const agent of agents) {
+    if (agent.note) p.log.warn(agent.note);
+  }
 
-  if (!launch || dryRun) {
-    p.note(`${agent.bin} "${PROMPT}"`, "Start your agent with");
-    p.outro(dryRun ? "Dry run: nothing was changed." : "Honeybadger is installed.");
+  if (dryRun) {
+    showPrompt(agents);
+    p.outro("Dry run: nothing was changed.");
     return 0;
   }
 
-  p.outro(
-    `Starting ${agent.name}. When it asks, log in to Honeybadger in your browser.`,
-  );
-  const result = spawn.sync(agent.bin, [PROMPT], { stdio: "inherit" });
+  // Start an agent, or say how to.
+  const agent = await pickLaunch(agents, { skip: args["no-launch"], yes });
+  if (!agent) {
+    showPrompt(agents);
+    p.outro("Honeybadger is installed.");
+    return 0;
+  }
+  p.outro(`Starting ${agent.name}. When it asks, log in to Honeybadger in your browser.`);
+  const result = spawn.sync(agent.bin, agent.launch(PROMPT), { stdio: "inherit" });
   return result.status ?? 1;
+}
+
+/** Returns the agent to start, or undefined to print the prompt instead. */
+async function pickLaunch(agents, { skip, yes }) {
+  const launchable = agents.filter((agent) => agent.launch);
+  if (skip || launchable.length === 0 || !process.stdin.isTTY) return undefined;
+  if (hasUncommittedChanges()) {
+    p.log.warn("You have uncommitted changes. The agent will edit files in this directory.");
+  }
+  if (yes) return launchable[0];
+  if (launchable.length === 1) {
+    const go = await ask(() =>
+      p.confirm({ message: `Start ${launchable[0].name} to add Honeybadger to this app?` }),
+    );
+    return go ? launchable[0] : undefined;
+  }
+  const id = await ask(() =>
+    p.select({
+      message: "Start an agent to add Honeybadger to this app?",
+      options: [
+        ...launchable.map((a) => ({ value: a.id, label: `Start ${a.name}` })),
+        { value: "none", label: "No, I'll start one myself" },
+      ],
+    }),
+  );
+  return launchable.find((a) => a.id === id);
+}
+
+function showPrompt(agents) {
+  const [agent] = agents;
+  if (agents.length === 1 && agent.launch) {
+    p.note(`${agent.bin} ${agent.launch(PROMPT).map(quote).join(" ")}`, "Start your agent with");
+  } else {
+    const names = new Intl.ListFormat("en", { type: "disjunction" }).format(
+      agents.map((a) => a.name),
+    );
+    p.note(PROMPT, `Start ${names} in this directory and ask`);
+  }
 }
 
 class NoTerminal extends Error {}
@@ -183,6 +232,11 @@ function stop(message = "Setup cancelled.", code = 0) {
   return code;
 }
 
+function hasUncommittedChanges() {
+  const result = spawn.sync("git", ["status", "--porcelain"], { encoding: "utf8" });
+  return result.status === 0 && result.stdout.trim() !== "";
+}
+
 function run(step) {
   if (step.cmd) {
     const [bin, ...rest] = step.cmd;
@@ -194,13 +248,20 @@ function run(step) {
     }
   } else if (step.copySkills) {
     copySkills(skillsSource(), step.copySkills);
-  } else if (step.mcpJson) {
-    addMcpServer(step.mcpJson, step.url);
+  } else if (step.removeSkills) {
+    removeSkills(step.removeSkills);
+  } else if (step.mcp) {
+    addMcpServer(step.mcp, step.url);
   }
 }
 
 function describe(step) {
-  if (step.cmd) return `  $ ${step.cmd.join(" ")}`;
+  if (step.cmd) return `  $ ${step.cmd.map(quote).join(" ")}`;
   if (step.copySkills) return `  copy honeybadger-* skills to ${step.copySkills}`;
-  return `  set mcpServers.honeybadger.url = ${step.url} in ${step.mcpJson}`;
+  if (step.removeSkills) return `  remove honeybadger-* skills from ${step.removeSkills}`;
+  return `  add-mcp: honeybadger = ${step.url} for ${step.mcp.join(", ")}`;
+}
+
+function quote(arg) {
+  return /^[\w@%+=:,./-]+$/.test(arg) ? arg : `"${arg.replaceAll('"', '\\"')}"`;
 }
