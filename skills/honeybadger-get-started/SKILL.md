@@ -69,10 +69,12 @@ that route; otherwise ask what they want to do:
 | Check that errors reach Honeybadger, or finish a partial setup (e.g. no API key configured) | [`references/first-error-setup.md`](references/first-error-setup.md), skipping the install for anything already installed. |
 | Fix or investigate an error | The `honeybadger-debug-errors` skill. Without it, use `list_faults`, `get_fault`, and `list_fault_notices` directly. |
 | Send logs and events to Insights | The library's `insights/` docs (find the library in [`references/sdk-docs.md`](references/sdk-docs.md)); confirm events arrive with `query_insights`. |
-| Track deploys | The library's deployment-tracking docs; confirm with `list_deploys` if your MCP has it. |
+| Track deploys | The library's deployment-tracking docs; confirm with `query_insights` (`filter event_type::str == "deploy"`). |
 | Readable backtraces in production | "Readable backtraces" in [`references/sdk-docs.md`](references/sdk-docs.md). |
 | Monitor a cron job or scheduled task | The `honeybadger-monitor-jobs` skill. Without it, use `create_check_in` after fetching the `checkins` topic from `get_reference`. |
-| Monitor an uptime URL or a query | The MCP's `create_alarm`, `create_dashboard`, and `create_site` (if available). Fetch the `get_reference` topics each tool's description names first. |
+| Get alerted when a query crosses a threshold (500s spike, a job stops) | The `honeybadger-alarms` skill. Without it, use `create_alarm` after fetching the `get_reference` topics its description names. |
+| Build or change an Insights dashboard | The `honeybadger-dashboards` skill. Without it, use `create_dashboard` after fetching the `get_reference` topics its description names. |
+| Monitor an uptime URL | The Honeybadger web UI (project settings, Uptime). The MCP server has no uptime tools. |
 
 Only offer a skill that's in your available skill list; otherwise use the fallback in the
 table.
