@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: dash-internal-stream
+description: Adds a widget over Honeybadger notice events with permission to save. The agent should read the dashboard first, verify the query, save once with every existing widget id kept, and give the new widget the internal stream.
+tags: [dashboards]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, "Bash(python3:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

@@ -114,9 +114,22 @@ The stories are under "Investigations" in `mocks/honeybadger/query_insights.md`.
 
 Every case also checks that the agent does not call `update_fault` or `create_fault_comment`, and that the skill loads.
 
+## Cases: honeybadger-dashboards
+
+The Shop project has one dashboard, "Shop Overview" (`dQ7xRk`), with four widgets that carry server ids: "Requests per hour" (line), "Server errors" (billboard), "Slowest actions" (table), and "Errors by class", a bar chart over `notice` events whose `streams` is `["default"]`, so it renders empty. `create_dashboard` and `update_dashboard` echo the submitted dashboard back as JSON with a `url`; `delete_dashboard` returns a preview with a confirmation token. The validator in `skills/honeybadger-dashboards/scripts/` only runs when `Write` and `Bash(python3:*)` are granted with `--allow-tools`; without them the agent checks the layout by hand, and the cases still pass.
+
+| Case | Checks |
+|------|--------|
+| `dash-add-widget` | "Add a p95 response time chart": reads the dashboard, runs the query, proposes the widget below the existing rows with all four widgets kept, does not call `update_dashboard` |
+| `dash-new-dashboard` | "A dashboard for checkout health": runs at least three queries, proposes a non-overlapping layout, does not call `create_dashboard` |
+| `dash-internal-stream` | A `notice` widget with permission to save: `get_dashboard` and `query_insights` before `update_dashboard`, exactly one update that keeps all four existing ids and gives the widget the `internal` stream, reports the `url` from the response |
+| `dash-empty-widget` | "This widget shows no data": reads the widget, runs its query, names the missing `internal` stream, proposes the fix without saving |
+
+Every case also checks that the agent never calls `delete_dashboard`, that the `dashboards` reference is fetched, and that the skill loads.
+
 ## Insights mocks
 
-`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
+`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call; the `dash-*` cases override it to return badgerql, queries, charts, and dashboards instead, because the agent cannot read a reply with all seven topics. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
 
 ## Results (2026-10-08)
 

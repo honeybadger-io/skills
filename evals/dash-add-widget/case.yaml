@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: dash-add-widget
+description: Add one widget to an existing four-widget dashboard. The agent should read the dashboard, run the new query, propose the widget in a free grid slot with every existing widget kept, and ask before updating.
+tags: [dashboards]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, "Bash(python3:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh
