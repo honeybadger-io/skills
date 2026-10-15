@@ -28,11 +28,11 @@ gem "honeybadger", "~> 6.0"
 gem "faraday", "~> 2.0"
 EOF
   cat > config/honeybadger.yml <<'EOF'
-api_key: <%= ENV["HONEYBADGER_API_KEY"] %>
+---
+# The API key comes from the environment.
 EOF
   cat > .env <<'EOF'
-HONEYBADGER_API_KEY=fixture-api-key-2b81
-PAYMENTS_SECRET=fixture-secret-7f3a9c
+PAYMENTS_SECRET=sk_test_EXAMPLE
 EOF
   printf '.env\n' > .gitignore
   cat > app/models/customer.rb <<'EOF'
