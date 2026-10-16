@@ -1,7 +1,7 @@
 {
   "name": "honeybadger",
   "version": "0.2.1",
-  "description": "Error tracking, debugging, alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server",
+  "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server.",
   "mcpServers": "./.mcp.json",
   "author": {
     "name": "Honeybadger Industries LLC",
