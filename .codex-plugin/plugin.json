@@ -1,7 +1,7 @@
 {
   "name": "honeybadger",
   "version": "0.2.1",
-  "description": "Error tracking, debugging, Insights alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server",
+  "description": "Error tracking, debugging, alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server",
   "author": {
     "name": "Honeybadger Industries LLC",
     "email": "support@honeybadger.io",
@@ -10,7 +10,7 @@
   "homepage": "https://www.honeybadger.io",
   "repository": "https://github.com/honeybadger-io/skills",
   "license": "MIT",
-  "keywords": ["honeybadger", "error-tracking", "debugging", "monitoring", "observability", "insights", "alarms", "mcp"],
+  "keywords": ["honeybadger", "error-tracking", "debugging", "monitoring", "observability", "logging", "alarms", "mcp"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {

@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "honeybadger",
   "version": "0.2.1",
-  "description": "Error tracking, debugging, Insights alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server",
+  "description": "Error tracking, debugging, alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server",
   "author": {
     "name": "Honeybadger Industries LLC",
     "url": "https://www.honeybadger.io"
@@ -15,7 +15,7 @@
     "debugging",
     "monitoring",
     "observability",
-    "insights",
+    "logging",
     "alarms",
     "honeybadger"
   ]
