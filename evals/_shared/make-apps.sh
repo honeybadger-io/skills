@@ -34,7 +34,7 @@ EOF
     echo 'gem "honeybadger", "~> 6.0"' >> Gemfile
     cat > config/honeybadger.yml <<'EOF'
 ---
-api_key: "<%= ENV['HONEYBADGER_API_KEY'] %>"
+# The API key comes from the environment.
 EOF
   fi
   cat > config/application.rb <<'EOF'

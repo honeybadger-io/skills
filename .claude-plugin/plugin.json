@@ -11,5 +11,7 @@
   "homepage": "https://docs.honeybadger.io",
   "repository": "https://github.com/honeybadger-io/skills",
   "license": "MIT",
+  "icon": "./.claude-plugin/icon.png",
+  "privacyPolicyUrl": "https://www.honeybadger.io/privacy/",
   "keywords": ["honeybadger", "error-tracking", "debugging", "monitoring", "observability", "mcp"]
 }
