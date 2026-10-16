@@ -1,13 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "honeybadger",
-  "version": "0.2.0",
-  "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io",
+  "version": "0.2.1",
+  "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server.",
   "author": {
     "name": "Honeybadger Industries LLC",
     "url": "https://www.honeybadger.io"
   },
-  "homepage": "https://docs.honeybadger.io",
+  "homepage": "https://www.honeybadger.io",
   "repository": "https://github.com/honeybadger-io/skills",
   "license": "MIT",
   "keywords": [
@@ -15,6 +15,8 @@
     "debugging",
     "monitoring",
     "observability",
+    "logging",
+    "alarms",
     "honeybadger"
   ]
 }

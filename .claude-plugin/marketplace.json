@@ -11,7 +11,7 @@
     {
       "name": "honeybadger",
       "source": "./",
-      "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io, plus the Honeybadger MCP server"
+      "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server."
     }
   ]
 }
