@@ -11,7 +11,7 @@
     {
       "name": "honeybadger",
       "source": "./",
-      "description": "Error tracking, debugging, and job monitoring skills for Honeybadger.io, plus the Honeybadger MCP server"
+      "description": "Error tracking, debugging, Insights alarms and investigations, and job monitoring skills for Honeybadger, plus the Honeybadger MCP server"
     }
   ]
 }
