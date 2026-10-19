@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
-import { AGENTS, MCP_URL, PROMPT, findAgent, plan } from "./agents.js";
+import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
 import {
   addMcpServer,
   copySkills,
@@ -17,14 +17,14 @@ const IDS = AGENTS.map((agent) => agent.id).join(", ");
 const HELP = `Set up Honeybadger with your coding agent.
 
 Installs the Honeybadger skills and MCP server for your coding agents, then
-starts one to add Honeybadger to the app in this directory. For US accounts;
-EU accounts: https://github.com/honeybadger-io/skills#install
+starts one to add Honeybadger to the app in this directory.
 
 Usage: npx @honeybadger-io/wizard [options]
 
 Options:
   --agent <id>       Agent to set up; repeat for more than one (default: ask)
                      ${IDS}
+  --region <us|eu>   Your Honeybadger account's region (default: ask; us with --yes)
   --no-launch        Install only; don't start an agent
   --dry-run          Print what would run, change nothing
   -y, --yes          Don't ask anything: skip the checks for uncommitted changes
@@ -42,7 +42,7 @@ export async function main(argv) {
     return await wizard(argv);
   } catch (err) {
     if (!(err instanceof NoTerminal)) throw err;
-    p.log.error("No terminal to ask in. Pass --yes.");
+    p.log.error("No terminal to ask in. Pass --yes, plus --region eu for an EU account.");
     return stop("Setup cancelled.", 1);
   }
 }
@@ -54,6 +54,7 @@ async function wizard(argv) {
       args: argv,
       options: {
         agent: { type: "string", multiple: true },
+        region: { type: "string" },
         "no-launch": { type: "boolean" },
         "dry-run": { type: "boolean" },
         yes: { type: "boolean", short: "y" },
@@ -74,13 +75,30 @@ async function wizard(argv) {
     console.error(`Unknown agent "${unknown}". Use one of: ${IDS}.`);
     return 1;
   }
+  if (args.region && !["us", "eu"].includes(args.region)) {
+    console.error(`Unknown region "${args.region}". Use us or eu.`);
+    return 1;
+  }
   const dryRun = args["dry-run"];
   const yes = args.yes;
 
   p.intro("Honeybadger setup");
-  p.log.info(
-    "This sets up Honeybadger for US accounts (app.honeybadger.io). For an EU account, see https://github.com/honeybadger-io/skills#install",
-  );
+
+  const region =
+    args.region ??
+    (yes
+      ? "us"
+      : await ask(() =>
+          p.select({
+            message: "Which Honeybadger region is your account in?",
+            options: [
+              { value: "us", label: "US", hint: "app.honeybadger.io" },
+              { value: "eu", label: "EU", hint: "eu-app.honeybadger.io" },
+            ],
+            initialValue: "us",
+          }),
+        ));
+  if (region === undefined) return stop();
 
   if (!looksLikeProject(process.cwd()) && !yes) {
     p.log.warn("This doesn't look like an app directory.");
@@ -135,7 +153,7 @@ async function wizard(argv) {
   // Show what will change, then install.
   const claude = agents.find((agent) => agent.id === "claude" && agent.bin);
   const marketplaces = claude ? claudeMarketplaces() : [];
-  const steps = plan(agents, homedir(), { marketplaces });
+  const steps = plan(agents, region, homedir(), { marketplaces });
   const manual = steps.filter((step) => step.manual);
   const auto = steps.filter((step) => !step.manual);
   if (auto.length > 0) {
@@ -163,6 +181,9 @@ async function wizard(argv) {
   }
   for (const step of manual) {
     p.note(step.manual.map((cmd) => cmd.map(quote).join(" ")).join("\n"), `${step.title} by running`);
+  }
+  if (claude && !dryRun) {
+    p.log.info("If Claude Code is already open, restart it to load the plugin's MCP server.");
   }
 
   if (dryRun) {
@@ -262,7 +283,7 @@ function run(step) {
   } else if (step.copySkills) {
     copySkills(skillsSource(), step.copySkills);
   } else if (step.mcp) {
-    addMcpServer(step.mcp, MCP_URL);
+    addMcpServer(step.mcp, step.url);
   }
 }
 
@@ -276,7 +297,7 @@ function describe(step) {
     const copy = `  copy the Honeybadger skills to ${step.copySkills}`;
     return replaced.length > 0 ? `${copy}\n  overwrites: ${replaced.join(", ")}` : copy;
   }
-  return `  add-mcp: honeybadger = ${MCP_URL} for ${step.mcp.join(", ")}`;
+  return `  add-mcp: honeybadger = ${step.url} for ${step.mcp.join(", ")}`;
 }
 
 function quote(arg) {

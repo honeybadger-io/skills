@@ -1,8 +1,22 @@
 {
   "name": "honeybadger",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server.",
-  "mcpServers": "./.mcp.json",
+  "userConfig": {
+    "mcp_url": {
+      "type": "string",
+      "title": "Honeybadger MCP server",
+      "description": "https://mcp.honeybadger.io/mcp for US accounts (app.honeybadger.io), https://eu-mcp.honeybadger.io/mcp for EU accounts (eu-app.honeybadger.io)",
+      "default": "https://mcp.honeybadger.io/mcp",
+      "options": ["https://mcp.honeybadger.io/mcp", "https://eu-mcp.honeybadger.io/mcp"]
+    }
+  },
+  "mcpServers": {
+    "honeybadger": {
+      "type": "http",
+      "url": "${user_config.mcp_url}"
+    }
+  },
   "author": {
     "name": "Honeybadger Industries LLC",
     "email": "support@honeybadger.io",

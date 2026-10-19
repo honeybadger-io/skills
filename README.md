@@ -14,7 +14,7 @@ Run this in your app's directory:
 npx @honeybadger-io/wizard
 ```
 
-It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes. The wizard is for US accounts; for an EU account, use the steps below.
+It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes. It asks for your Honeybadger region, US or EU.
 
 ### Claude Code
 
@@ -23,9 +23,15 @@ It installs the skills and MCP server for the coding agents it finds (Claude Cod
 /plugin install honeybadger@honeybadger
 ```
 
+The plugin asks which MCP server to use: `https://mcp.honeybadger.io/mcp` for US accounts (the default) or `https://eu-mcp.honeybadger.io/mcp` for EU accounts. To change it later, run `/plugin`, open the **Installed** tab, select `honeybadger`, and choose **Configure options**. From your shell:
+
+```
+claude plugin install honeybadger@honeybadger --config mcp_url=https://eu-mcp.honeybadger.io/mcp
+```
+
 ### Codex and Cursor
 
-Add this repository as a plugin source in your agent. The manifests are in `.codex-plugin/` and `.cursor-plugin/`.
+Add this repository as a plugin source in your agent. The manifests are in `.codex-plugin/` and `.cursor-plugin/`. These plugins use the US MCP server; for an EU account, use the wizard or the steps for other agents below.
 
 ### Other agents
 

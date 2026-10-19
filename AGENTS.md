@@ -14,7 +14,7 @@ skills/<name>/scripts/          # Optional helper scripts
 .codex-plugin/plugin.json       # Codex plugin manifest
 .cursor-plugin/                 # Cursor plugin + marketplace manifests
 plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) manifests
-.mcp.json                       # MCP server config used by Claude Code and Codex
+.mcp.json                       # MCP server config used by Codex (Claude Code's is in .claude-plugin/plugin.json, with a US/EU mcp_url option)
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
 wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, offers to start the agent
