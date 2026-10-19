@@ -168,16 +168,28 @@ class DiffTests(unittest.TestCase):
             widget("Requests per hour", 0, 0, 6, 4, wid="w1", chart_config=LINE),
             widget("Latency", 0, 4, 12, 4, chart_config=LINE),
         )
-        errors, lines = validate.diff(self.before, after)
+        errors, warnings, lines = validate.diff(self.before, after)
         self.assertEqual(errors, [])
         text = "\n".join(lines)
         self.assertIn('added (1): widget 1 "Latency"', text)
-        self.assertIn('changed (1): widget 0 "Requests per hour"', text)
+        self.assertIn('changed (1): widget 0 "Requests per hour" (presentation.title)', text)
         self.assertIn('removed (1): widget 1 "Errors"', text)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('will delete 1 widget(s): widget 1 "Errors"', warnings[0])
+
+    def test_changed_fields(self):
+        moved = widget("Requests", 0, 4, 6, 4, wid="w1", chart_config=LINE)
+        moved["config"]["streams"] = ["default", "internal"]
+        moved["config"]["vis"]["chart_config"] = {"xField": "time", "yField": "total"}
+        after = dashboard(moved, widget("Errors", 6, 0, 6, 4, wid="w2", wtype="errors"))
+        _, _, lines = validate.diff(self.before, after)
+        self.assertIn('changed (1): widget 0 "Requests" (config.streams, config.vis.chart_config.yField, grid)',
+                      "\n".join(lines))
 
     def test_unchanged(self):
-        errors, lines = validate.diff(self.before, json.loads(json.dumps(self.before)))
+        errors, warnings, lines = validate.diff(self.before, json.loads(json.dumps(self.before)))
         self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
         self.assertIn("unchanged: 2", "\n".join(lines))
         self.assertIn("removed (0): none", "\n".join(lines))
 
@@ -188,7 +200,7 @@ class DiffTests(unittest.TestCase):
             widget("Copy", 0, 4, 6, 4, wid="w1", chart_config=LINE),
             widget("Invented", 6, 4, 6, 4, wid="w9", chart_config=LINE),
         )
-        errors, _ = validate.diff(self.before, after)
+        errors, _, _ = validate.diff(self.before, after)
         self.assertTrue(any("'w1' appears twice" in e for e in errors))
         self.assertTrue(any("'w9' is not on the existing dashboard" in e for e in errors))
 

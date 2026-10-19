@@ -311,9 +311,25 @@ def check_insights_vis(config, name, errors, warnings):
         errors.append(f"{name}: chart_config.groups must be an object keyed by series name")
 
 
+def changed_fields(old, new, prefix=""):
+    """Return the dotted paths of the fields that differ between two widgets."""
+    paths = []
+    for key in sorted(set(old) | set(new), key=str):
+        path = f"{prefix}{key}"
+        a, b = old.get(key), new.get(key)
+        if a == b:
+            continue
+        # A moved or resized widget reads better as "grid" than as grid.x, grid.w.
+        if isinstance(a, dict) and isinstance(b, dict) and path != "grid":
+            paths.extend(changed_fields(a, b, path + "."))
+        else:
+            paths.append(path)
+    return paths
+
+
 def diff(before, after):
-    """Return (errors, lines): id problems, and the added/changed/removed widgets."""
-    errors, lines = [], []
+    """Return (errors, warnings, lines): id problems, removals, and the added/changed/removed widgets."""
+    errors, warnings, lines = [], [], []
     old = {w["id"]: (i, w) for i, w in enumerate(before.get("widgets") or []) if isinstance(w, dict) and w.get("id")}
     seen = set()
     added, changed, same = [], [], 0
@@ -332,11 +348,15 @@ def diff(before, after):
         if wid not in old:
             errors.append(f"{name}: id {wid!r} is not on the existing dashboard; leave id off a new widget")
             continue
-        if old[wid][1] == widget:
-            same += 1
+        fields = changed_fields(old[wid][1], widget)
+        if fields:
+            changed.append(f"{name} ({', '.join(fields)})")
         else:
-            changed.append(name)
+            same += 1
     removed = [widget_name(w, i) for wid, (i, w) in old.items() if wid not in seen]
+    if removed:
+        warnings.append(f"update_dashboard will delete {len(removed)} widget(s): {', '.join(removed)}; "
+                        "tell the user, and keep them unless the user asked to remove them")
     if "title" in before and before.get("title") != after.get("title"):
         lines.append(f"title: {before.get('title')!r} -> {after.get('title')!r}")
     if before.get("default_ts") != after.get("default_ts"):
@@ -345,7 +365,7 @@ def diff(before, after):
     lines.append(f"changed ({len(changed)}): " + (", ".join(changed) or "none"))
     lines.append(f"removed ({len(removed)}): " + (", ".join(removed) or "none"))
     lines.append(f"unchanged: {same}")
-    return errors, lines
+    return errors, warnings, lines
 
 
 def run(proposed_path, before_path=None):
@@ -364,8 +384,9 @@ def run(proposed_path, before_path=None):
             return 1, [f"error: cannot read {before_path}: {e}"]
         if not isinstance(before, dict):
             return 1, [f"error: {before_path} is not a dashboard object"]
-        diff_errors, diff_lines = diff(before, proposed)
+        diff_errors, diff_warnings, diff_lines = diff(before, proposed)
         errors.extend(diff_errors)
+        warnings.extend(diff_warnings)
     elif isinstance(proposed, dict) and any(isinstance(w, dict) and w.get("id") for w in proposed.get("widgets") or []):
         warnings.append("some widgets have ids but no --before dashboard was given; ids must come from the dashboard being updated")
 
