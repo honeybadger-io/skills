@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "chartConfigs": {
+      "table": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "billboard": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "titleField": { "type": "string" },
+          "valueField": { "type": "string" },
+          "titleURLField": { "type": "string" },
+          "subtitleField": { "type": "string" },
+          "statusField": { "type": "string" },
+          "groupType": { "type": "string", "enum": ["fields", "events"] }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "groupType": { "const": "events" } },
+              "required": ["groupType"]
+            },
+            "then": { "required": ["valueField"] }
+          }
+        ]
+      },
+      "bar": {
+        "type": "object",
+        "required": ["categoryField", "valueField"],
+        "additionalProperties": false,
+        "properties": {
+          "categoryField": { "type": "string" },
+          "valueField": { "type": "string" },
+          "valueFieldUnit": { "type": "string" },
+          "labelField": { "type": "string" },
+          "groupType": { "type": "string", "enum": ["fields", "events"] },
+          "groupField": { "type": "string" },
+          "horizontal": { "type": "boolean" },
+          "stacked": { "type": "boolean" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "line": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "xField": { "type": "string" },
+          "yField": { "type": "string" },
+          "zField": { "type": "string" },
+          "colorField": { "type": "string" },
+          "xFieldUnit": { "type": "string" },
+          "yFieldUnit": { "type": "string" },
+          "groupType": { "type": "string", "enum": ["fields", "events"] },
+          "yAxisLabel": { "type": "string" },
+          "yAxisMin": { "type": "number" },
+          "yAxisMax": { "type": "number" },
+          "rightYAxisFormat": { "type": "string" },
+          "rightYAxisLabel": { "type": "string" },
+          "rightYAxisMin": { "type": "number" },
+          "rightYAxisMax": { "type": "number" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": {
+                  "color": { "type": "string" },
+                  "axis": { "type": "string", "enum": ["left", "right"] }
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "groupType": { "const": "events" } },
+              "required": ["groupType"]
+            },
+            "then": { "required": ["yField"] }
+          }
+        ]
+      },
+      "area": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "xField": { "type": "string" },
+          "yField": { "type": "string" },
+          "zField": { "type": "string" },
+          "groupType": { "type": "string", "enum": ["fields", "events"] },
+          "stacked": { "type": "boolean" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "groupType": { "const": "events" } },
+              "required": ["groupType"]
+            },
+            "then": { "required": ["yField"] }
+          }
+        ]
+      },
+      "histogram": {
+        "type": "object",
+        "required": ["xField", "yField"],
+        "additionalProperties": false,
+        "properties": {
+          "xField": { "type": "string" },
+          "yField": { "type": "string" },
+          "zField": { "type": "string" },
+          "xFieldUnit": { "type": "string" },
+          "yFieldUnit": { "type": "string" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "scatter": {
+        "type": "object",
+        "required": ["xField", "yField"],
+        "additionalProperties": false,
+        "properties": {
+          "xField": { "type": "string" },
+          "yField": { "type": "string" },
+          "groupField": { "type": "string" },
+          "scaleField": { "type": "string" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "heatmap": {
+        "type": "object",
+        "required": ["xField", "yField", "zField"],
+        "additionalProperties": false,
+        "properties": {
+          "xField": { "type": "string" },
+          "yField": { "type": "string" },
+          "zField": { "type": "string" },
+          "yFieldUnit": { "type": "string" },
+          "steps": { "type": "integer", "minimum": 1 },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "pie": {
+        "type": "object",
+        "required": ["nameField", "valueField"],
+        "additionalProperties": false,
+        "properties": {
+          "nameField": { "type": "string" },
+          "valueField": { "type": "string" },
+          "groups": {
+            "type": "object",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object",
+                "properties": { "color": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widgetConfigs": {
+      "insights_vis": {
+        "additionalProperties": false,
+        "properties": {
+          "streams": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["default", "internal"] }
+          },
+          "query": true,
+          "vis": true
+        }
+      },
+      "alarms": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1 },
+          "filter_state": { "type": "string", "enum": ["all", "triggered", "ok"] }
+        }
+      },
+      "errors": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1 },
+          "query": { "type": "string" },
+          "sort": { "type": "string", "enum": ["last_seen_desc", "last_seen_asc", "times_desc", "times_asc"] }
+        }
+      },
+      "deployments": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1 },
+          "override_time": { "type": "boolean" },
+          "ts": { "type": "string" }
+        }
+      },
+      "checkins": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1 },
+          "sort_order": { "type": "string", "enum": ["state_name", "name", "last_reported"] }
+        }
+      },
+      "uptime": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["title", "widgets"],
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string", "maxLength": 255 },
+    "default_ts": { "type": "string" },
+    "widgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["insights_vis", "alarms", "deployments", "checkins", "uptime", "errors"]
+          },
+          "grid": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "x": { "type": "integer", "minimum": 0 },
+              "y": { "type": "integer", "minimum": 0 },
+              "w": { "type": "integer", "minimum": 1 },
+              "h": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "presentation": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "maxLength": 255 },
+              "subtitle": { "type": "string", "maxLength": 255 }
+            }
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "streams": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["default", "internal"] }
+              },
+              "query": { "type": "string" },
+              "vis": {
+                "type": "object",
+                "required": ["view"],
+                "additionalProperties": false,
+                "properties": {
+                  "view": {
+                    "type": "string",
+                    "enum": ["billboard", "bar", "line", "pie", "area", "histogram", "scatter", "heatmap", "table"]
+                  },
+                  "chart_config": { "type": "object" }
+                },
+                "allOf": [
+                  {
+                    "if": { "properties": { "view": { "const": "table" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/table" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "billboard" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/billboard" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "bar" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/bar" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "line" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/line" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "area" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/area" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "histogram" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/histogram" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "scatter" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/scatter" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "heatmap" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/heatmap" } } }
+                  },
+                  {
+                    "if": { "properties": { "view": { "const": "pie" } } },
+                    "then": { "properties": { "chart_config": { "$ref": "#/$defs/chartConfigs/pie" } } }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "insights_vis" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/insights_vis" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "alarms" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/alarms" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "errors" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/errors" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "deployments" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/deployments" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "checkins" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/checkins" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "uptime" } } },
+            "then": { "properties": { "config": { "$ref": "#/$defs/widgetConfigs/uptime" } } }
+          }
+        ]
+      }
+    }
+  }
+}

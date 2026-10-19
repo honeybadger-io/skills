@@ -36,6 +36,33 @@ def dashboard(*widgets, title="Shop"):
 LINE = {"xField": "time", "yField": "count"}
 
 
+class SchemaTests(unittest.TestCase):
+    """The rules come from dashboards.json; these fail if its layout stops matching the loader."""
+
+    def setUp(self):
+        with open(validate.SCHEMA_PATH, encoding="utf-8") as f:
+            self.schema = json.load(f)
+        self.widget = self.schema["properties"]["widgets"]["items"]
+
+    def test_every_widget_type_has_config_rules(self):
+        types = set(self.widget["properties"]["type"]["enum"])
+        self.assertEqual(set(validate.CONFIG_KEYS), types)
+
+    def test_every_view_has_chart_rules(self):
+        views = set(self.widget["properties"]["config"]["properties"]["vis"]["properties"]["view"]["enum"])
+        self.assertEqual(set(validate.CHART_CONFIG), views)
+
+    def test_rules_are_populated(self):
+        self.assertEqual(validate.DASHBOARD_KEYS, {"title", "default_ts", "widgets"})
+        self.assertEqual(validate.GRID_KEYS, {"x", "y", "w", "h"})
+        self.assertEqual(validate.STREAMS, {"default", "internal"})
+        self.assertEqual(validate.GROUP_TYPES, {"fields", "events"})
+        self.assertEqual(validate.MAX_TEXT, 255)
+        self.assertEqual(validate.CHART_CONFIG["bar"][1], {"categoryField", "valueField"})
+        self.assertEqual(validate.EVENTS_REQUIRED, {"billboard": "valueField", "line": "yField", "area": "yField"})
+        self.assertIn(("errors", "sort"), validate.CONFIG_ENUMS)
+
+
 class CheckTests(unittest.TestCase):
     def errors(self, dash):
         return validate.check(dash)[0]

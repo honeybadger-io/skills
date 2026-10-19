@@ -13,64 +13,105 @@ Standard library only.
 
 import argparse
 import json
+import os
 import re
 import sys
 
 # ---------------------------------------------------------------------------
-# Allowed keys. This table mirrors the `dashboards` and `charts` topics of the
-# Honeybadger MCP server's get_reference tool. When they disagree, the live
-# reference wins: update this table, not the dashboard.
+# Rules. The allowed keys, required keys, and allowed values come from
+# dashboards.json, a pinned copy of insights/v1/dashboards.json from
+# https://github.com/honeybadger-io/honeybadger-schemas. Update it with
+# scripts/sync-dashboard-schema.py at the repo root; do not edit it by hand.
 # ---------------------------------------------------------------------------
 
-GRID_COLUMNS = 12
-MAX_TEXT = 255
-WIDGET_WARN_COUNT = 30  # more than this has been rejected on save
+SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboards.json")
 
-DASHBOARD_KEYS = {"title", "default_ts", "widgets"}
+GRID_COLUMNS = 12
+WIDGET_WARN_COUNT = 30  # more than this has been rejected on save
 # Present in get_dashboard output; ignored on save.
 DASHBOARD_READ_ONLY_KEYS = {"id", "url", "created_at", "updated_at", "project_id", "is_default", "shared"}
-
-WIDGET_KEYS = {"type", "id", "grid", "presentation", "config"}
-GRID_KEYS = {"x", "y", "w", "h"}
-PRESENTATION_KEYS = {"title", "subtitle"}
-
-CONFIG_KEYS = {
-    "insights_vis": {"streams", "query", "vis"},
-    "alarms": {"limit", "filter_state"},
-    "errors": {"limit", "query", "sort"},
-    "deployments": {"limit", "override_time", "ts"},
-    "checkins": {"limit", "sort_order"},
-    "uptime": {"limit"},
-}
-CONFIG_ENUMS = {
-    ("alarms", "filter_state"): {"all", "triggered", "ok"},
-    ("errors", "sort"): {"last_seen_desc", "last_seen_asc", "times_desc", "times_asc"},
-    ("checkins", "sort_order"): {"state_name", "name", "last_reported"},
-}
-STREAMS = {"default", "internal"}
-
-VIS_KEYS = {"view", "chart_config"}
-GROUP_TYPES = {"fields", "events"}
+# The schema allows any string for these; the charts reference lists the values the renderer understands.
+UNIT_KEYS = {"valueFieldUnit", "xFieldUnit", "yFieldUnit"}
 UNITS = {"percent", "microseconds", "milliseconds"}
 
+
+def resolve(schema, node):
+    """Follow local $refs ("#/$defs/...") until node is a plain schema."""
+    while isinstance(node, dict) and "$ref" in node:
+        ref = node["$ref"]
+        if not ref.startswith("#/"):
+            raise ValueError(f"unsupported $ref {ref!r}")
+        node = schema
+        for part in ref[2:].split("/"):
+            node = node[part]
+    return node
+
+
+def rules_by_const(schema, all_of, field, target):
+    """Map each `if: {field: const}` rule in all_of to the schema its `then` gives `target`."""
+    rules = {}
+    for rule in all_of:
+        const = rule["if"]["properties"][field]["const"]
+        rules[const] = resolve(schema, rule["then"]["properties"][target])
+    return rules
+
+
+def load_rules(path=SCHEMA_PATH):
+    with open(path, encoding="utf-8") as f:
+        schema = json.load(f)
+    dashboard = schema["properties"]
+    widget = dashboard["widgets"]["items"]
+    vis = widget["properties"]["config"]["properties"]["vis"]
+    configs = rules_by_const(schema, widget["allOf"], "type", "config")
+    charts = rules_by_const(schema, vis["allOf"], "view", "chart_config")
+
+    rules = {
+        "dashboard_keys": set(dashboard),
+        "max_text": dashboard["title"]["maxLength"],
+        "widget_keys": set(widget["properties"]),
+        "grid_keys": set(widget["properties"]["grid"]["properties"]),
+        "presentation_keys": set(widget["properties"]["presentation"]["properties"]),
+        "vis_keys": set(vis["properties"]),
+        "config_keys": {t: set(c.get("properties", {})) for t, c in configs.items()},
+        "config_enums": {
+            (t, key): set(p["enum"])
+            for t, c in configs.items()
+            for key, p in c.get("properties", {}).items()
+            if isinstance(p, dict) and "enum" in p
+        },
+        "streams": set(configs["insights_vis"]["properties"]["streams"]["items"]["enum"]),
+        "chart_config": {
+            view: (set(c.get("properties", {})), set(c.get("required", [])))
+            for view, c in charts.items()
+        },
+        "group_types": set(),
+        "events_required": {},
+    }
+    for view, c in charts.items():
+        group_type = c.get("properties", {}).get("groupType")
+        if group_type:
+            rules["group_types"] |= set(group_type["enum"])
+        for rule in c.get("allOf", []):
+            if rule["if"]["properties"].get("groupType", {}).get("const") == "events":
+                rules["events_required"][view] = rule["then"]["required"][0]
+    return rules
+
+
+RULES = load_rules()
+DASHBOARD_KEYS = RULES["dashboard_keys"]
+MAX_TEXT = RULES["max_text"]
+WIDGET_KEYS = RULES["widget_keys"]
+GRID_KEYS = RULES["grid_keys"]
+PRESENTATION_KEYS = RULES["presentation_keys"]
+CONFIG_KEYS = RULES["config_keys"]
+CONFIG_ENUMS = RULES["config_enums"]
+STREAMS = RULES["streams"]
+VIS_KEYS = RULES["vis_keys"]
+GROUP_TYPES = RULES["group_types"]
 # view -> (allowed chart_config keys, keys required whatever the groupType)
-CHART_CONFIG = {
-    "table": (set(), set()),
-    "billboard": ({"titleField", "valueField", "titleURLField", "subtitleField", "statusField", "groupType"}, set()),
-    "bar": ({"categoryField", "valueField", "valueFieldUnit", "labelField", "groupType", "groupField",
-             "horizontal", "stacked", "groups"}, {"categoryField", "valueField"}),
-    "line": ({"xField", "yField", "zField", "colorField", "xFieldUnit", "yFieldUnit", "groupType",
-              "yAxisLabel", "yAxisMin", "yAxisMax", "rightYAxisFormat", "rightYAxisLabel", "rightYAxisMin",
-              "rightYAxisMax", "groups"}, set()),
-    "area": ({"xField", "yField", "zField", "groupType", "stacked", "groups"}, set()),
-    "histogram": ({"xField", "yField", "zField", "xFieldUnit", "yFieldUnit", "groups"}, {"xField", "yField"}),
-    "scatter": ({"xField", "yField", "groupField", "scaleField", "groups"}, {"xField", "yField"}),
-    "heatmap": ({"xField", "yField", "zField", "yFieldUnit", "steps", "groups"}, {"xField", "yField", "zField"}),
-    "pie": ({"nameField", "valueField", "groups"}, {"nameField", "valueField"}),
-}
+CHART_CONFIG = RULES["chart_config"]
 # Required only when groupType is "events" (the default when groupType is absent).
-EVENTS_REQUIRED = {"billboard": "valueField", "line": "yField", "area": "yField"}
-UNIT_KEYS = {"valueFieldUnit", "xFieldUnit", "yFieldUnit"}
+EVENTS_REQUIRED = RULES["events_required"]
 
 # Event types Honeybadger generates; they live on the internal stream.
 INTERNAL_EVENTS = re.compile(r"\b(notice|deploy|uptime_check|check_in)\b")
