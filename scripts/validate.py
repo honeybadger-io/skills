@@ -93,6 +93,14 @@ for path in MANIFESTS:
 if len(set(versions.values())) > 1:
     errors.append("manifest versions differ: " + ", ".join(f"{p}={v}" for p, v in versions.items()))
 
+# A case's mocks can only read fixtures in its own mocks directory, so cases
+# that override get_reference keep copies of the shared reference fixtures.
+shared_fixtures = ROOT / "evals/mocks/honeybadger/fixtures"
+for copy in sorted(ROOT.glob("evals/*/mocks/honeybadger/fixtures/reference-*.md")):
+    original = shared_fixtures / copy.name
+    if not original.exists() or copy.read_bytes() != original.read_bytes():
+        errors.append(f"{copy.relative_to(ROOT)}: differs from {original.relative_to(ROOT)}; copy it again")
+
 if errors:
     print("\n".join(errors))
     sys.exit(1)

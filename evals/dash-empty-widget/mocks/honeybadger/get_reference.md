@@ -1,7 +1,3 @@
-{{file:fixtures/reference-badgerql.md}}
-
----
-
 {{file:fixtures/reference-queries.md}}
 
 ---
