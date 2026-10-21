@@ -1,7 +1,7 @@
 ---
-type: tool_used
-tool: mcp__plugin_honeybadger_honeybadger__get_project
-input_match: '"id":\s*1001'
-min: 1
+type: regex
+pattern: 'honeybadger\s+install\s+["'']?hbp_fixture_key(["''`\s]|$)'
+match: contains
+target: last_message
 ---
-Gets the API key from the chosen project.
+Passes the Shop project's real API key, from the MCP, to the gem's install command, as the docs show.

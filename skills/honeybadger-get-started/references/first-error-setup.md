@@ -7,12 +7,15 @@ users hit.
 
 ## 1. Platform and region
 
-1. Map the project to its docs page with [`sdk-docs.md`](sdk-docs.md) and fetch the page.
+1. Map the project to its docs page with [`sdk-docs.md`](sdk-docs.md) and fetch the page,
+   even for a framework you know well. Install commands, defaults, and the verification
+   step change between versions, so take them from the docs, not from memory.
 2. Confirm the platform with the user before installing anything. Files can mislead:
    monorepos, a frontend and a backend in one repo, a framework layered on another.
-3. If you're connected to the EU MCP endpoint (`eu-mcp.honeybadger.io`), the account is in
-   the EU region, and the library must report to EU endpoints. Set every region-specific
-   option the library's configuration reference lists — some libraries have several.
+3. If you've been told the account's region, use it. Otherwise the account is in the US
+   region, unless you're connected to the EU MCP endpoint (`eu-mcp.honeybadger.io`). An EU
+   account's library must report to EU endpoints: follow the docs' EU instructions,
+   including any region options on the install command.
 
 ## 2. Project and API key
 
@@ -21,14 +24,27 @@ users hit.
    something visible to the user's whole team. If `create_project` isn't among your tools,
    the connection is read-only: the user either re-authorizes with read-write access or
    creates the project in the UI.
-3. Get the API key: use `list_project_keys` if your MCP has it (keys start with `hbp_`;
-   create one with `create_project_key` only after asking). Otherwise call `get_project`
-   on the chosen project and use its `token` field — `list_projects` doesn't include it.
-4. Configure the key the way the docs show — usually the `HONEYBADGER_API_KEY` environment
-   variable or the library's config file. The key can send reports to the project but
-   can't read data through the REST API, and browser and mobile apps ship it publicly.
-   For server apps, keep it out of source control anyway: anyone holding it can send
-   reports to the project.
+3. Get the project's API key from the `token` field of `list_projects` or `get_project`.
+   If the project has no `token` and your MCP has a tool that reads or lists a project's
+   API keys or ingestion keys, use that. Don't create a key.
+4. Use the key the way the platform docs show. Pass it to the install command if the
+   docs have one. Otherwise, put it where their configuration step does (a config file,
+   or the `HONEYBADGER_API_KEY` environment variable).
+
+   **The project API key is not a secret credential.** It is an ingestion key, more like
+   an analytics tag than an API token: it can only send data into this one project
+   (errors, events, deploys, check-ins). It can't read data, change settings, or reach any
+   other project, and browser and mobile apps ship it publicly. So:
+
+   - Reading it from the MCP, passing it on a command line, and showing it to the user
+     are all fine. Don't warn that listing projects "exposed" keys, and don't suggest
+     rotating them.
+   - Don't introduce a password manager, keychain, or secrets store just for this key,
+     and don't invent a different setup from the docs to keep it out of a file.
+   - Committing the config file the docs generate is normal. If the repo already keeps
+     settings like this in environment variables or a secrets store (an `.env` pattern,
+     Rails credentials, a deploy platform's settings), say that the docs also accept
+     `HONEYBADGER_API_KEY` and offer to use it.
 
 ## 3. Install
 
@@ -45,7 +61,7 @@ the first case that applies.
 1. **The docs' install command sends a test error itself.** Ruby's
    `bundle exec honeybadger install <key>` and Laravel's `php artisan honeybadger:install <key>`
    write the config *and* send a test exception through the app. Running the install
-   command is the verification. Do not also run `honeybadger test` or
+   command, with the region options the docs show for EU accounts, is the verification. Do not also run `honeybadger test` or
    `honeybadger:test`, call `notify`, add a route, or raise anything yourself; go straight
    to confirming the error the install sent.
 2. **The docs have a separate test command or snippet** (a `test` command, a settings
@@ -78,6 +94,9 @@ To confirm the test error:
    into one fault, so a test from an earlier install can match the search even when
    this one is broken.
 4. Report the error class, message, and fault URL to the user.
+
+If the install or test command says the API key is invalid, check the region first: you
+may have assumed US for an EU account.
 
 If nothing arrives within about two minutes, check in this order: reporting is enabled for
 the current environment, the key belongs to this project, the region matches (a US key
