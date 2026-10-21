@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
 import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
+import { banner, colorSupport } from "./banner.js";
 import {
   addMcpServer,
   copySkills,
@@ -82,6 +84,15 @@ async function wizard(argv) {
   const dryRun = args["dry-run"];
   const yes = args.yes;
 
+  if (process.stdout.isTTY) {
+    const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    const details = [
+      ["release", `honeybadger wizard v${version}`],
+      ["supplied by", "honeybadger.io"],
+      ["agents", AGENTS.map((agent) => agent.name).join(", ")],
+    ];
+    process.stdout.write(`\n${banner({ columns: process.stdout.columns, color: colorSupport(), details })}\n`);
+  }
   p.intro("Honeybadger setup");
 
   const region =

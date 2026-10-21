@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { getAgentTypes } from "add-mcp";
 import { AGENTS, MCP_URLS, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
+import { banner, colorSupport } from "../src/banner.js";
 import {
   copySkills,
   existingSkills,
@@ -165,4 +166,24 @@ test("agents picked without their CLI get files or commands to run, never run an
     ],
     [["amp", "mcp", "add", "honeybadger", MCP_URLS.us]],
   ]);
+});
+
+test("banner fits the terminal: bolt and wordmark, wordmark alone, or nothing", () => {
+  const details = [["release", "honeybadger wizard v0.0.0"], ["agents", "x".repeat(200)]];
+  const widest = (text) => Math.max(...text.split("\n").map((line) => line.length));
+  const wide = banner({ columns: 120, details });
+  assert.ok(wide.includes("$$$") && widest(wide) <= 120);
+  const narrow = banner({ columns: 80, details });
+  assert.ok(!narrow.includes("$$$") && narrow.includes("/____/") && widest(narrow) <= 80);
+  assert.equal(banner({ columns: 40, details }), "");
+});
+
+test("banner color follows Node's color support check", () => {
+  assert.equal(colorSupport({ NO_COLOR: "1", COLORTERM: "truecolor" }), null);
+  assert.equal(colorSupport({ FORCE_COLOR: "0", COLORTERM: "truecolor" }), null);
+  assert.equal(colorSupport({ TERM: "dumb" }), null);
+  assert.equal(colorSupport({ COLORTERM: "truecolor" }), "truecolor");
+  assert.equal(colorSupport({ TERM: "xterm-256color" }), "ansi256");
+  assert.ok(!banner({ columns: 120, details: [["a", "b"]] }).includes("\x1b["));
+  assert.ok(banner({ columns: 120, color: "truecolor", details: [["a", "b"]] }).includes("\x1b[38;2;234;89;55m"));
 });
