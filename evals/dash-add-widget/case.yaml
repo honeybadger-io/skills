@@ -1,6 +1,6 @@
 schema_version: "1.1"
 name: dash-add-widget
-description: Add one widget to an existing four-widget dashboard. The agent should read the dashboard, run the new query, propose the widget in a free grid slot with every existing widget kept, and ask before updating.
+description: Add one widget to an existing four-widget dashboard. The agent should read the dashboard, run the new query, add the widget below the existing rows with every existing widget kept, back up the dashboard, and update it once without asking.
 tags: [dashboards]
 plugins: ["../.."]
 execution:

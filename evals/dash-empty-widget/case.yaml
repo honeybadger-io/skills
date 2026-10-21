@@ -1,6 +1,6 @@
 schema_version: "1.1"
 name: dash-empty-widget
-description: A widget over notice events has streams ["default"], so it renders empty. The agent should read the widget, run its query, name the missing internal stream, propose the fix, and not save without asking.
+description: A widget over notice events has streams ["default"], so it renders empty. The agent should read the widget, run its query, name the missing internal stream, and offer the fix without saving, because the user only asked what is wrong.
 tags: [dashboards]
 plugins: ["../.."]
 execution:

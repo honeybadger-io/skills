@@ -1,6 +1,6 @@
 schema_version: "1.1"
 name: dash-new-dashboard
-description: A dashboard from a goal. The agent should discover the events, run each widget query, propose a non-overlapping layout, and ask before creating.
+description: A dashboard from a goal. The agent should discover the events, run each widget query, lay out the widgets without overlaps, and create the dashboard once without asking.
 tags: [dashboards]
 plugins: ["../.."]
 execution:
