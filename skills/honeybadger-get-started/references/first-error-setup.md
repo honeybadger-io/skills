@@ -12,9 +12,10 @@ users hit.
    step change between versions, so take them from the docs, not from memory.
 2. Confirm the platform with the user before installing anything. Files can mislead:
    monorepos, a frontend and a backend in one repo, a framework layered on another.
-3. If you're connected to the EU MCP endpoint (`eu-mcp.honeybadger.io`), the account is in
-   the EU region, and the library must report to EU endpoints. Set every region-specific
-   option the library's configuration reference lists — some libraries have several.
+3. If you've been told the account's region, use it. Otherwise the account is in the US
+   region, unless you're connected to the EU MCP endpoint (`eu-mcp.honeybadger.io`). An EU
+   account's library must report to EU endpoints: follow the docs' EU instructions,
+   including any region options on the install command.
 
 ## 2. Project and API key
 
@@ -60,7 +61,7 @@ the first case that applies.
 1. **The docs' install command sends a test error itself.** Ruby's
    `bundle exec honeybadger install <key>` and Laravel's `php artisan honeybadger:install <key>`
    write the config *and* send a test exception through the app. Running the install
-   command is the verification. Do not also run `honeybadger test` or
+   command, with the region options the docs show for EU accounts, is the verification. Do not also run `honeybadger test` or
    `honeybadger:test`, call `notify`, add a route, or raise anything yourself; go straight
    to confirming the error the install sent.
 2. **The docs have a separate test command or snippet** (a `test` command, a settings
@@ -93,6 +94,9 @@ To confirm the test error:
    into one fault, so a test from an earlier install can match the search even when
    this one is broken.
 4. Report the error class, message, and fault URL to the user.
+
+If the install or test command says the API key is invalid, check the region first: you
+may have assumed US for an EU account.
 
 If nothing arrives within about two minutes, check in this order: reporting is enabled for
 the current environment, the key belongs to this project, the region matches (a US key
