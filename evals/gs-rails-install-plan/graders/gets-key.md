@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'honeybadger install [`"'']?hbp_fixture_key'
+pattern: 'honeybadger\s+install\s+["'']?hbp_fixture_key(["''`\s]|$)'
 match: contains
 target: last_message
 ---

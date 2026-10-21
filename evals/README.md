@@ -63,10 +63,10 @@ Every case also checks that the agent does not call `update_fault` or `create_fa
 
 | Case | Checks |
 |------|--------|
-| `gs-new-app-no-project` | Probes with `list_projects` and a repo search; proposes a project name and asks before `create_project`; no feature menu |
+| `gs-new-app-no-project` | Probes with `list_projects` and a repo search; proposes a project name and asks before `create_project`; no feature menu; no warning about the API keys `list_projects` returns |
 | `gs-rails-install-plan` | Uses the matching project, reads the Rails docs, passes the project's real key to `bundle exec honeybadger install` (which also sends the test error), and treats the key as an ingestion key: no leak warning, no secrets store, no setup that departs from the docs |
 | `gs-ember-manual-verify` | Reads the Ember docs; with no test command, triggers a test error by hand and removes it afterward |
-| `gs-already-installed` | Does not reinstall; asks what the user wants or offers next steps |
+| `gs-already-installed` | Does not reinstall; asks what the user wants or offers next steps; no warning about the API keys `list_projects` returns |
 | `gs-readme-mention-only` | A README mention is not an install |
 | `gs-cdn-script` | Notices the CDN `<script>` install and does not add a second client |
 | `gs-mcp-not-connected` | Stops and explains how to authorize the MCP or sign up |
@@ -116,13 +116,15 @@ Every case also checks that the agent does not call `update_fault` or `create_fa
 
 ## Insights mocks
 
-`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_projects` includes each project's API key (`token`), as the real MCP does. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
+`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_projects` and `get_project` include each project's API key (`token`), as the real MCP does. `get_project`, `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
 
 ## Results (2026-10-08)
 
 Full suite, Sonnet judge, 3 runs per case: every debug-errors and get-started case passes, after the fixes noted below.
 
 get-started without the skill (2 runs each, before the last `gs-mcp-not-connected` grader change): the agent skipped the `list_projects` probe in 3 cases, never read the docs or fetched the API key in the Rails and Ember cases, and failed the Ember verification and the MCP-not-connected handling. The already-installed, README, CDN, and no-project outcome checks passed without the skill.
+
+API key handling (2026-10-21, Sonnet judge, get-started cases, 3 runs each): once `list_projects` returned each project's `token`, the Rails agent skipped the docs and wrote the setup from memory in 4 of 12 runs (0 of 4 on the old skill). Telling it to fetch the docs page even for a familiar framework fixed that (11 of 11). The key graders (`key-handling`, `no-key-warning`) passed in every run. Two misses in that run were not about the key: `gs-new-app-no-project: no-feature-menu` failed 1 of 3 on an answer with no menu, and `gs-ember-manual-verify: manual-test-error` failed 1 of 3 when the agent triggered the error through an existing failing route, so there was no temporary trigger to remove.
 
 Grader fixes made while building the get-started cases, each after reading the transcripts: the Rails case's fake project had old errors, so agents rightly asked whether to reuse it; the MCP check required asking a question even when the error already said "not authorized"; and the README check let the judge weigh unrelated project questions.
 
