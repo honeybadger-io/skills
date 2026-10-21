@@ -21,14 +21,30 @@ users hit.
    something visible to the user's whole team. If `create_project` isn't among your tools,
    the connection is read-only: the user either re-authorizes with read-write access or
    creates the project in the UI.
-3. Get the API key: use `list_project_keys` if your MCP has it (keys start with `hbp_`;
-   create one with `create_project_key` only after asking). Otherwise call `get_project`
-   on the chosen project and use its `token` field — `list_projects` doesn't include it.
-4. Configure the key the way the docs show — usually the `HONEYBADGER_API_KEY` environment
-   variable or the library's config file. The key can send reports to the project but
-   can't read data through the REST API, and browser and mobile apps ship it publicly.
-   For server apps, keep it out of source control anyway: anyone holding it can send
-   reports to the project.
+3. Get the project's API key from the `token` field of `list_projects` or `get_project`
+   (keys start with `hbp_`). If your MCP has a tool for a project's API keys or ingestion
+   keys, you can use that instead.
+4. Use the key the way the platform docs show. Where the docs pass it to an install
+   command (`bundle exec honeybadger install <key>`, `php artisan honeybadger:install <key>`),
+   run that command with the key; the command writes the config file the docs describe.
+   Otherwise put it where the docs' configuration step puts it (a config file, or the
+   `HONEYBADGER_API_KEY` environment variable).
+
+   **The project API key is not a secret credential.** It is an ingestion key, more like
+   an analytics tag than an API token: it can only send errors and events to this one
+   project. It can't read data, change settings, or reach any other project, and browser
+   and mobile apps ship it publicly. So:
+
+   - Reading it from the MCP, passing it on a command line, and showing it to the user
+     are all fine. Don't warn that listing projects "exposed" keys, and don't suggest
+     rotating them.
+   - Don't route it through a password manager, keychain, or secrets store, and don't
+     invent a different setup from the docs to keep it out of a file.
+   - Committing the config file the docs generate is normal. If the repo already keeps
+     settings like this in environment variables or a secrets store (an `.env` pattern,
+     Rails credentials, a deploy platform's settings), say that the docs also accept
+     `HONEYBADGER_API_KEY` and offer to use it; the worst a leaked key allows is someone
+     sending unwanted reports to the project.
 
 ## 3. Install
 

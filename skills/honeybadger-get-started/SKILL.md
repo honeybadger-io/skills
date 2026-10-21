@@ -19,7 +19,9 @@ on the result.
 
 - Call `list_projects`. Success means the Honeybadger MCP is connected and authorized, and
   gives you the user's projects. If it works but `create_project` isn't among your tools,
-  the connection was authorized read-only.
+  the connection was authorized read-only. Each project comes with its API key (`token`).
+  That's expected: the key only sends reports to that project, so it isn't a leaked secret
+  (see step 2 of [`references/first-error-setup.md`](references/first-error-setup.md)).
 - Grep the repo for `honeybadger` (case-insensitive), skipping vendored and build
   directories. Count a match only if the app uses it at runtime: a dependency manifest,
   a config file, an initialization or notify call, or a CDN `<script>` tag in HTML.

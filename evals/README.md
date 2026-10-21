@@ -64,7 +64,7 @@ Every case also checks that the agent does not call `update_fault` or `create_fa
 | Case | Checks |
 |------|--------|
 | `gs-new-app-no-project` | Probes with `list_projects` and a repo search; proposes a project name and asks before `create_project`; no feature menu |
-| `gs-rails-install-plan` | Uses the matching project, gets the key with `get_project`, reads the Rails docs, verifies with the gem's install or test command, keeps the key out of source |
+| `gs-rails-install-plan` | Uses the matching project, reads the Rails docs, passes the project's real key to `bundle exec honeybadger install` (which also sends the test error), and treats the key as an ingestion key: no leak warning, no secrets store, no setup that departs from the docs |
 | `gs-ember-manual-verify` | Reads the Ember docs; with no test command, triggers a test error by hand and removes it afterward |
 | `gs-already-installed` | Does not reinstall; asks what the user wants or offers next steps |
 | `gs-readme-mention-only` | A README mention is not an install |
@@ -116,7 +116,7 @@ Every case also checks that the agent does not call `update_fault` or `create_fa
 
 ## Insights mocks
 
-`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
+`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_projects` includes each project's API key (`token`), as the real MCP does. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
 
 ## Results (2026-10-08)
 
