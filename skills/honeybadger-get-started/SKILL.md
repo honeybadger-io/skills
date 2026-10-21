@@ -73,7 +73,7 @@ that route; otherwise ask what they want to do:
 | Readable backtraces in production | "Readable backtraces" in [`references/sdk-docs.md`](references/sdk-docs.md). |
 | Monitor a cron job or scheduled task | The `honeybadger-monitor-jobs` skill. Without it, use `create_check_in` after fetching the `checkins` topic from `get_reference`. |
 | Get alerted when a query crosses a threshold (500s spike, a job stops) | The `honeybadger-alarms` skill. Without it, use `create_alarm` after fetching the `get_reference` topics its description names. |
-| Build or change an Insights dashboard | The `honeybadger-dashboards` skill. Without it, use `create_dashboard` after fetching the `get_reference` topics its description names. |
+| Build, change, fix, or explain an Insights dashboard, or find out why a widget is empty | The `honeybadger-dashboards` skill. Without it, fetch the `dashboards`, `charts`, and `queries` topics from `get_reference`; use `create_dashboard` for a new dashboard, and for an existing one `get_dashboard`, then `update_dashboard` with every existing widget and its `id` kept. |
 | Monitor an uptime URL | The Honeybadger web UI (project settings, Uptime). The MCP server has no uptime tools. |
 
 Only offer a skill that's in your available skill list; otherwise use the fallback in the
