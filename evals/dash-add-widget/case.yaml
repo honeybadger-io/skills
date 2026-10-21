@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: dash-add-widget
+description: Add one widget to an existing four-widget dashboard. The agent should read the dashboard, run the new query, add the widget below the existing rows with every existing widget kept, back up the dashboard, and update it once without asking.
+tags: [dashboards]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, "Bash(python3:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh

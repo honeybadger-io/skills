@@ -47,6 +47,7 @@ If you also added Honeybadger as a connector on claude.ai, Claude Code uses that
 | [honeybadger-monitor-jobs](skills/honeybadger-monitor-jobs/SKILL.md) | Create a check-in for a cron job or scheduled task and wire the report into the job | "Add a Honeybadger check-in to the nightly backup job" |
 | [honeybadger-alarms](skills/honeybadger-alarms/SKILL.md) | Create, tune, or explain an Insights alarm, with the threshold measured from real data | "Alert us when 500s spike in production" |
 | [honeybadger-investigate](skills/honeybadger-investigate/SKILL.md) | Investigate a support ticket, slowdown, or incident with Insights events, faults, and deploys | "A customer says checkout failed yesterday, what happened?" |
+| [honeybadger-dashboards](skills/honeybadger-dashboards/SKILL.md) | Build an Insights dashboard from a goal, or add, fix, or remove a widget without losing the others | "Make a dashboard for checkout health" |
 
 ## Contributing
 

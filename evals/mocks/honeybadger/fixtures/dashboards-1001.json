@@ -1,0 +1,122 @@
+{
+  "results": [
+    {
+      "id": "dQ7xRk",
+      "title": "Shop Overview",
+      "default_ts": "P1D",
+      "widgets": [
+        {
+          "id": "3f1c2a9e-5b7d-4c1e-9a2b-1d4e6f8a0c21",
+          "type": "insights_vis",
+          "presentation": {
+            "title": "Requests per hour"
+          },
+          "grid": {
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "streams": [
+              "default"
+            ],
+            "query": "filter event_type::str == \"process_action.action_controller\"\n| stats count() as count by bin(1h) as time",
+            "vis": {
+              "view": "line",
+              "chart_config": {
+                "xField": "time",
+                "yField": "count"
+              }
+            }
+          }
+        },
+        {
+          "id": "8b2d4e6f-1a3c-4d5e-8f7a-2b4c6d8e0a43",
+          "type": "insights_vis",
+          "presentation": {
+            "title": "Server errors",
+            "subtitle": "Responses with status 500 or above"
+          },
+          "grid": {
+            "x": 6,
+            "y": 0,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "streams": [
+              "default"
+            ],
+            "query": "filter event_type::str == \"process_action.action_controller\" and status::int >= 500\n| stats count() as count",
+            "vis": {
+              "view": "billboard",
+              "chart_config": {
+                "valueField": "count"
+              }
+            }
+          }
+        },
+        {
+          "id": "c5e7a9b1-3d5f-4e7a-9b1c-3d5f7a9b1c65",
+          "type": "insights_vis",
+          "presentation": {
+            "title": "Slowest actions"
+          },
+          "grid": {
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "streams": [
+              "default"
+            ],
+            "query": "filter event_type::str == \"process_action.action_controller\"\n| stats avg(duration::float) as avg by controller::str, action::str\n| sort avg desc\n| limit 10\n| only controller as Controller, action as Action, toHumanString(avg, \"milliseconds\") as `Avg`",
+            "vis": {
+              "view": "table"
+            }
+          }
+        },
+        {
+          "id": "d7f9b1c3-5e7a-4f9b-ad3e-5f7a9b1c3e87",
+          "type": "insights_vis",
+          "presentation": {
+            "title": "Errors by class"
+          },
+          "grid": {
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "streams": [
+              "default"
+            ],
+            "query": "filter event_type::str == \"notice\"\n| stats count() as count by klass::str\n| sort count desc",
+            "vis": {
+              "view": "bar",
+              "chart_config": {
+                "categoryField": "klass",
+                "valueField": "count"
+              }
+            }
+          }
+        }
+      ],
+      "is_default": true,
+      "shared": true,
+      "created_at": "2026-08-20T15:02:11.410Z",
+      "updated_at": "2026-09-30T09:14:52.772Z",
+      "project_id": 1001,
+      "url": "https://app.honeybadger.io/projects/1001/insights/dashboards/shop-overview-dQ7xRk"
+    }
+  ],
+  "links": {
+    "next": "",
+    "prev": "",
+    "self": "https://app.honeybadger.io/v2/projects/1001/dashboards"
+  }
+}

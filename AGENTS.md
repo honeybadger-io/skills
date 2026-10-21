@@ -16,6 +16,7 @@ skills/<name>/scripts/          # Optional helper scripts
 plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) manifests
 .mcp.json                       # MCP server config used by Claude Code and Codex
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
+scripts/sync-dashboard-schema.py # Copies the dashboard JSON schema into honeybadger-dashboards
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
 ```
 
@@ -46,6 +47,9 @@ Run before committing:
 ```bash
 python3 scripts/validate.py
 claude plugin validate .
+python3 -I -B skills/honeybadger-dashboards/scripts/test_validate.py
 ```
+
+The dashboards validator reads its rules from `skills/honeybadger-dashboards/scripts/dashboards.json`, a pinned copy of `insights/v1/dashboards.json` from [honeybadger-schemas](https://github.com/honeybadger-io/honeybadger-schemas). Don't edit it by hand: change the schema there, then set `REF` in `scripts/sync-dashboard-schema.py` to the new commit and run the script.
 
 When you change a skill, run its evals (see `evals/README.md`) and add a case for any new behavior.

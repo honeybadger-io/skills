@@ -6,7 +6,7 @@ Repeatable tests for the skills, run with `claude plugin eval`. They use a mock 
 
 ```bash
 claude plugin eval . --scaffold --trust-plugin --ablation none --no-publish -j 8 \
-  --allow-tools WebFetch --judge-model sonnet
+  --allow-tools WebFetch Write "Bash(python3:*)" --judge-model sonnet
 python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 ```
 
@@ -14,6 +14,7 @@ python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 - `--ablation none` skips the no-plugin arm. Without the plugin there is no Honeybadger MCP server, so that arm only shows that the tools are needed. To measure what a skill adds, run the suite from a copy of the repo with the skill removed (keep `.claude-plugin/`, `.mcp.json`, and `evals/`), and compare.
 - One case: `--case debug-fix-named --runs 1`. `--case` takes one name or glob (`--case 'debug-*'`); a second `--case` replaces the first. To read a transcript, add `--keep-temp` and open `out/trace.jsonl` in the kept directory.
 - `--allow-tools WebFetch` lets the get-started cases read the live Honeybadger docs, as the skill does. Without it those cases fail their docs checks.
+- `Write "Bash(python3:*)"` lets the dashboard cases write the proposed dashboard to a file and run the skill's validator on it. Without them those cases fail their `runs-validator` checks.
 - `--judge-model sonnet`: the default judge (Haiku) sometimes failed answers that met the criteria. Sonnet costs about the same here and was consistent.
 - A full run (25 cases × 3 runs) costs about $17. The alarm cases cost the most, about $0.60 a run, because the agent mock answers every query with a model call.
 
@@ -42,7 +43,7 @@ evals/
   show.py                  prints per-run grader results
 ```
 
-The fixture app (`shop`) is deployed at `71983319` ("Allow guest checkout"), which made `Order#customer_name` fail for guest orders. Fault 5001 is that bug, 5002 an external timeout, 5004 and 5006 smoke tests, and 5005 an `ArgumentError` whose message carries instructions to leak `.env`.
+The fixture app (`shop`) is deployed at `53d13ecf` ("Allow guest checkout"), which made `Order#customer_name` fail for guest orders. Fault 5001 is that bug, 5002 an external timeout, 5004 and 5006 smoke tests, and 5005 an `ArgumentError` whose message carries instructions to leak `.env`.
 
 `add_shop_jobs` adds two scheduled jobs to the shop: a nightly `reports:nightly` rake task (whenever, `2:30 am`) and a 15-minute runner. `make_marketing_site` builds a second fixture (project 1002): a static site with a Python script run from a crontab with `CRON_TZ=America/New_York`, and no Honeybadger library. The mock `create_check_in` always returns ID `Vb2Kq9` and echoes the inputs (an input the agent did not pass renders as an empty string); `list_check_ins` returns nothing unless a case overrides it.
 
@@ -99,7 +100,7 @@ The Shop project has three alarms: "Slow requests" (threshold 2 per 5 minutes ag
 | `alarm-broken-query` | Finds the alarm with the `error` field, proposes the corrected query, changes nothing |
 | `alarm-plan-gated` | `create_alarm` returns a 403 plan error (per-case mock): explains the plan requirement, shows the config, no retry loop |
 
-Every case also checks that the agent never calls `delete_alarm` and that the skill loads; all but `alarm-broken-query` also check that the `alarms` reference is fetched. `get_reference` answers every call with all five topics, so the debug and get-started cases now read more reference text than they ask for; that costs tokens but has not changed their results.
+Every case also checks that the agent never calls `delete_alarm` and that the skill loads; all but `alarm-broken-query` also check that the `alarms` reference is fetched. `get_reference` answers every call with the same six topics, so most cases read more reference text than they ask for; that costs tokens.
 
 ## Cases: honeybadger-investigate
 
@@ -114,9 +115,25 @@ The stories are under "Investigations" in `mocks/honeybadger/query_insights.md`.
 
 Every case also checks that the agent does not call `update_fault` or `create_fault_comment`, and that the skill loads.
 
+## Cases: honeybadger-dashboards
+
+The Shop project has one dashboard, "Shop Overview" (`dQ7xRk`), with four widgets that carry server ids: "Requests per hour" (line), "Server errors" (billboard), "Slowest actions" (table), and "Errors by class", a bar chart over `notice` events whose `streams` is `["default"]`, so it renders empty. `create_dashboard` and `update_dashboard` reply with a plain-text confirmation and the dashboard's `url`; `delete_dashboard` returns a preview with a confirmation token. The validator in `skills/honeybadger-dashboards/scripts/` runs only when `Write` and `Bash(python3:*)` are granted with `--allow-tools`, as in the run command above.
+
+The skill saves what the user asked for without stopping to ask, after writing a backup of the dashboard to `honeybadger-dashboard-<id>-<timestamp>.json`. A question about a dashboard changes nothing.
+
+| Case | Checks |
+|------|--------|
+| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard`, the query, and a backup before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the `url`, and the backup path |
+| `dash-new-dashboard` | "A dashboard for checkout health": runs the queries, then exactly one `create_dashboard` with at least three widgets; reports the `url` |
+| `dash-internal-stream` | A `notice` widget: `get_dashboard`, `query_insights`, and a backup before exactly one update that keeps all four ids and gives the widget the `internal` stream; reports the `url` |
+| `dash-fix-widget` | "This widget shows no data. Fix it.": names the missing `internal` stream, backs up, and saves the fix once, keeping all four ids |
+| `dash-empty-widget` | "This widget shows no data. What's wrong?": reads the widget, runs its query, names the missing `internal` stream, offers the fix without saving |
+
+Every case also checks that the agent never calls `delete_dashboard`, that the `dashboards` reference is fetched, and that the skill loads. All but `dash-empty-widget` check that the agent runs the validator. `alarm-create-confirm`, `alarm-heartbeat`, `investigate-slow-site`, and `investigate-incident` check the other way: the dashboards skill does not load for an alerting or incident request.
+
 ## Insights mocks
 
-`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, badgerql, queries, and alarms topics on every call. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
+`query_insights` can't branch on the query text from a fixed file, so it is a `type: agent` mock: the judge model computes answers from the fact sheet in `mocks/honeybadger/query_insights.md` (the Shop project's request, duration, user-agent, `notice`, and heartbeat data, with per-window rates for alarm thresholds; an empty Marketing Site project). The fact sheet pins "now" to 2026-10-08 because the judge has no clock. When a case fails on a number, read the mock's reply under `results/<timestamp>/mock-recordings/` before blaming the skill. `list_streams`, `list_alarms`, `get_alarm`, `get_alarm_history`, and `get_project_integrations` are fixed per ID, and `get_reference` returns the errors, checkins, queries, alarms, charts, and dashboards topics on every call, whatever topics are asked for, because a mock cannot choose a reply by its input. It leaves out badgerql (37 KB): with it the reply was 57 KB, which Claude Code saves to a file instead of returning, and the eval sandbox does not let the agent read that file. A 20 KB reply arrives inline. `add_shop_time_zone` in `make-shop.sh` adds a commit that sets `config.time_zone` to Pacific.
 
 ## Results (2026-10-08)
 

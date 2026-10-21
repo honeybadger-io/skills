@@ -93,6 +93,7 @@ for path in MANIFESTS:
 if len(set(versions.values())) > 1:
     errors.append("manifest versions differ: " + ", ".join(f"{p}={v}" for p, v in versions.items()))
 
+
 if errors:
     print("\n".join(errors))
     sys.exit(1)
