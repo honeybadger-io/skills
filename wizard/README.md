@@ -29,7 +29,7 @@ The wizard:
                    start the first one
 ```
 
-With `--yes` and no terminal, as in CI, the wizard installs but doesn't start an agent. Pass `--region eu` for an EU account.
+With `--yes` in CI (when `CI` is set) or with no terminal, the wizard installs but doesn't start an agent. Pass `--region eu` for an EU account.
 
 ## What it installs
 

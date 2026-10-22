@@ -77,6 +77,11 @@ export function findBin(bins, path = process.env.PATH ?? "") {
   return undefined;
 }
 
+/** True when running in CI. Some CI systems give jobs a terminal, so a TTY check alone isn't enough. */
+export function isCI(env = process.env) {
+  return Boolean(env.CI) && env.CI !== "false" && env.CI !== "0";
+}
+
 /** True if dir looks like an app: a git repo or a common dependency manifest. */
 export function looksLikeProject(dir) {
   const markers = [

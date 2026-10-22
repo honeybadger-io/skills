@@ -11,6 +11,7 @@ import {
   copySkills,
   existingSkills,
   findBin,
+  isCI,
   looksLikeProject,
   skillsSource,
 } from "../src/install.js";
@@ -201,4 +202,11 @@ test("Other agent gets the shared skills and the region's MCP config to add, not
 
 test("Other agent is never found on PATH, so --yes doesn't pick it", () => {
   assert.equal(findBin(findAgent("other").bins), undefined);
+});
+
+test("isCI", () => {
+  assert.equal(isCI({ CI: "true" }), true);
+  assert.equal(isCI({ CI: "1" }), true);
+  assert.equal(isCI({ CI: "false" }), false);
+  assert.equal(isCI({}), false);
 });

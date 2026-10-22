@@ -10,6 +10,7 @@ import {
   copySkills,
   existingSkills,
   findBin,
+  isCI,
   looksLikeProject,
   skillsSource,
 } from "./install.js";
@@ -224,7 +225,8 @@ async function wizard(argv) {
 async function pickLaunch(agents, { skip, yes }) {
   const launchable = agents.filter((agent) => agent.bin && agent.launch);
   if (skip || launchable.length === 0 || !process.stdin.isTTY) return undefined;
-  if (yes) return launchable[0];
+  // With --yes nobody may be watching: in CI, starting an interactive agent would hang the job
+  if (yes) return isCI() ? undefined : launchable[0];
   if (launchable.length === 1) {
     const go = await ask(() =>
       p.confirm({ message: `Start ${launchable[0].name} to add Honeybadger to this app?` }),
