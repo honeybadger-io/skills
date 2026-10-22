@@ -194,7 +194,11 @@ async function wizard(argv) {
   }
   for (const step of manual) {
     if (step.snippet) {
-      p.note(step.snippet, `${step.title}; its docs say where MCP servers go`);
+      p.note(
+        `URL: ${step.url}\nTransport: HTTP\n\nMost agents take it in this format:\n${step.snippet}\n\n` +
+          "If yours uses another format or location, its docs say how to add an HTTP MCP server.",
+        step.title,
+      );
     } else {
       p.note(step.manual.map((cmd) => cmd.map(quote).join(" ")).join("\n"), `${step.title} by running`);
     }

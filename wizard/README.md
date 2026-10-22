@@ -48,7 +48,7 @@ The wizard doesn't start Amp; it prints the prompt to give it instead.
 
 You can pick an agent whose CLI isn't on your PATH. It gets the skills and MCP config files, and the wizard prints the prompt instead of starting it. Claude Code and Amp need their CLI to install, so the wizard prints the commands to run.
 
-"Other agent" is for an agent the wizard doesn't list. It copies the skills to `~/.agents/skills`, which many agents read, and prints the MCP server config to add, since the wizard can't know where that agent keeps it. Check your agent's docs for both.
+"Other agent" is for an agent the wizard doesn't list. It copies the skills to `~/.agents/skills`, which many agents read, and prints the MCP server's URL with an example config, since the wizard can't know where that agent keeps its MCP config or which format it uses. Check your agent's docs for both.
 
 ## Development
 

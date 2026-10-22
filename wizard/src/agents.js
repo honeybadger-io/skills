@@ -109,7 +109,7 @@ export function findAgent(id) {
  *   { title, copySkills: dir }                      - copy the Honeybadger skills into dir
  *   { title, mcp: [agent ids], url }                - register the MCP server with add-mcp
  *   { title, manual: [[bin, ...args], ...] }        - commands for the user to run
- *   { title, snippet }                              - MCP config for the user to add
+ *   { title, snippet, url }                         - MCP server details for the user to add
  *
  * Claude Code gets the plugin, which bundles the MCP server. The plugin's
  * mcp_url option picks the region's server, so the wizard never writes Claude
@@ -179,7 +179,9 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
   if (byId.other) {
     steps.push({
       title: `Add ${server} to your other agent`,
+      // The common mcpServers format; agents with their own format (OpenCode's `mcp`, for one) need their docs
       snippet: JSON.stringify({ mcpServers: { honeybadger: { type: "http", url } } }, null, 2),
+      url,
     });
   }
 
