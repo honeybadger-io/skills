@@ -89,7 +89,7 @@ async function wizard(argv) {
     const details = [
       ["release", `honeybadger wizard v${version}`],
       ["supplied by", "honeybadger.io"],
-      ["agents", AGENTS.map((agent) => agent.name).join(", ")],
+      ["agents", AGENTS.filter((agent) => agent.id !== "other").map((agent) => agent.name).join(", ")],
     ];
     process.stdout.write(`\n${banner({ columns: process.stdout.columns, color: colorSupport(), details })}\n`);
   }
@@ -151,7 +151,7 @@ async function wizard(argv) {
         options: all.map((a) => ({
           value: a.id,
           label: a.name,
-          hint: a.bin ? undefined : "not found on PATH",
+          hint: a.hint ?? (a.bin ? undefined : "not found on PATH"),
         })),
         initialValues: installed.map((a) => a.id),
         required: true,
@@ -165,8 +165,9 @@ async function wizard(argv) {
   const claude = agents.find((agent) => agent.id === "claude" && agent.bin);
   const marketplaces = claude ? claudeMarketplaces() : [];
   const steps = plan(agents, region, homedir(), { marketplaces });
-  const manual = steps.filter((step) => step.manual);
-  const auto = steps.filter((step) => !step.manual);
+  // Steps for the user: commands to run, or MCP config to add
+  const manual = steps.filter((step) => step.manual || step.snippet);
+  const auto = steps.filter((step) => !step.manual && !step.snippet);
   if (auto.length > 0) {
     p.note(auto.map((step) => `${step.title}\n${describe(step)}`).join("\n\n"), "Installation summary");
     if (!dryRun && !yes) {
@@ -191,7 +192,11 @@ async function wizard(argv) {
     }
   }
   for (const step of manual) {
-    p.note(step.manual.map((cmd) => cmd.map(quote).join(" ")).join("\n"), `${step.title} by running`);
+    if (step.snippet) {
+      p.note(step.snippet, `${step.title}; its docs say where MCP servers go`);
+    } else {
+      p.note(step.manual.map((cmd) => cmd.map(quote).join(" ")).join("\n"), `${step.title} by running`);
+    }
   }
   if (claude && !dryRun) {
     p.log.info("If Claude Code is already open, restart it to load the plugin's MCP server.");
@@ -244,7 +249,7 @@ function showPrompt(agents) {
     p.note(`${agent.bin} ${agent.launch(PROMPT).map(quote).join(" ")}`, "Start your agent with");
   } else {
     const names = new Intl.ListFormat("en", { type: "disjunction" }).format(
-      agents.map((a) => a.name),
+      agents.map((a) => a.listName ?? a.name),
     );
     p.note(PROMPT, `Start ${names} in this directory and ask`);
   }

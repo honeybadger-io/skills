@@ -22,10 +22,12 @@ export const PROMPT =
 /**
  * Agents the wizard can set up.
  *
- *   bins    - CLI names to look for on PATH, in order
- *   mcp     - add-mcp's agent id, if add-mcp can register the MCP server
- *   launch  - args that start the agent interactively with a prompt; null if
- *             the wizard can't start it
+ *   bins     - CLI names to look for on PATH, in order
+ *   mcp      - add-mcp's agent id, if add-mcp can register the MCP server
+ *   launch   - args that start the agent interactively with a prompt; null if
+ *              the wizard can't start it
+ *   hint     - shown next to the agent in the picker
+ *   listName - the name used mid-sentence, if different
  *
  * Every agent but Claude Code reads skills from ~/.agents/skills.
  */
@@ -85,6 +87,16 @@ export const AGENTS = [
     mcp: "pi",
     launch: (prompt) => [prompt],
   },
+  {
+    // Any agent that reads ~/.agents/skills. The wizard can't know where its MCP config lives, so it prints the
+    // config to add.
+    id: "other",
+    name: "Other agent",
+    listName: "your other agent",
+    bins: [],
+    launch: null,
+    hint: "copies the skills to ~/.agents/skills and shows the MCP config to add",
+  },
 ];
 
 export function findAgent(id) {
@@ -97,6 +109,7 @@ export function findAgent(id) {
  *   { title, copySkills: dir }                      - copy the Honeybadger skills into dir
  *   { title, mcp: [agent ids], url }                - register the MCP server with add-mcp
  *   { title, manual: [[bin, ...args], ...] }        - commands for the user to run
+ *   { title, snippet }                              - MCP config for the user to add
  *
  * Claude Code gets the plugin, which bundles the MCP server. The plugin's
  * mcp_url option picks the region's server, so the wizard never writes Claude
@@ -163,6 +176,13 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
     });
   }
 
+  if (byId.other) {
+    steps.push({
+      title: `Add ${server} to your other agent`,
+      snippet: JSON.stringify({ mcpServers: { honeybadger: { type: "http", url } } }, null, 2),
+    });
+  }
+
   if (byId.amp && !byId.amp.bin) {
     steps.push({
       title: `Add ${server} to Amp`,
@@ -186,5 +206,5 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
 }
 
 function list(agents) {
-  return new Intl.ListFormat("en").format(agents.map((agent) => agent.name));
+  return new Intl.ListFormat("en").format(agents.map((agent) => agent.listName ?? agent.name));
 }

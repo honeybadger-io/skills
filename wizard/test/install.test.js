@@ -187,3 +187,18 @@ test("banner color follows Node's color support check", () => {
   assert.ok(!banner({ columns: 120, details: [["a", "b"]] }).includes("\x1b["));
   assert.ok(banner({ columns: 120, color: "truecolor", details: [["a", "b"]] }).includes("\x1b[38;2;234;89;55m"));
 });
+
+test("Other agent gets the shared skills and the region's MCP config to add, nothing run", () => {
+  const other = [{ ...findAgent("other"), bin: undefined }];
+  for (const region of ["us", "eu"]) {
+    const steps = plan(other, region, "/home/me", { env: {} });
+    assert.ok(!steps.some((s) => s.cmd || s.mcp));
+    assert.ok(steps.some((s) => s.copySkills === join("/home/me", ".agents", "skills")));
+    const snippet = JSON.parse(steps.find((s) => s.snippet).snippet);
+    assert.deepEqual(snippet, { mcpServers: { honeybadger: { type: "http", url: MCP_URLS[region] } } });
+  }
+});
+
+test("Other agent is never found on PATH, so --yes doesn't pick it", () => {
+  assert.equal(findBin(findAgent("other").bins), undefined);
+});
