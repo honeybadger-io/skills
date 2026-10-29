@@ -18,3 +18,13 @@ Skills teach agents how to do a task with Honeybadger. They should help agents f
 ## New skills
 
 Open an issue first if the skill is large or adds a new area. Name the skill after the task, in kebab-case with a `honeybadger-` prefix (for example `honeybadger-setup-check-ins`), and add it to the table in [README.md](README.md).
+
+## Submitting to the OpenAI plugin directory
+
+OpenAI's plugin dashboard takes the package as a ZIP. Build it from a commit, with only the files the package uses:
+
+```bash
+git archive -o honeybadger.zip HEAD plugin.json mcp.json skills assets
+```
+
+Upload it at https://platform.openai.com/plugins. The listing and review test cases come from `plugin.json` (see [AGENTS.md](AGENTS.md)); the reviewer account and its sign-in details go in the dashboard, never in the package. See OpenAI's [submission guide](https://developers.openai.com/plugins/deploy/submission).
