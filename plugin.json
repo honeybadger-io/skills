@@ -18,5 +18,30 @@
     "logging",
     "alarms",
     "honeybadger"
-  ]
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Honeybadger",
+        "shortDescription": "Error tracking and monitoring",
+        "longDescription": "Connect ChatGPT and Codex to your Honeybadger account. Triage and debug production errors, investigate incidents by querying your logs and events, create alarms, and monitor cron jobs and scheduled tasks with check-ins. Includes skills for adding Honeybadger to an app and the Honeybadger MCP server for live account data. Supports accounts in Honeybadger's US region (app.honeybadger.io).",
+        "developerName": "Honeybadger",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Interactive",
+          "Write"
+        ],
+        "websiteURL": "https://www.honeybadger.io",
+        "supportURL": "https://www.honeybadger.io/contact/",
+        "privacyPolicyURL": "https://www.honeybadger.io/privacy/",
+        "termsOfServiceURL": "https://www.honeybadger.io/terms/",
+        "defaultPrompt": [
+          "What are the top Honeybadger errors in the last 24 hours?",
+          "Fix the most recent Honeybadger error"
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      }
+    }
+  }
 }
