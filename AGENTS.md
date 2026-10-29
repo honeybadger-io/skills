@@ -10,8 +10,9 @@ Honeybadger skills for AI coding agents (Claude Code, Codex, and Cursor). The re
 skills/<name>/SKILL.md          # One skill per directory; name must match the directory
 skills/<name>/references/       # Optional detail the agent loads only when needed
 skills/<name>/scripts/          # Optional helper scripts
+assets/                         # Plugin icon, shared by the manifests
 .claude-plugin/                 # Claude Code plugin + marketplace manifests
-.codex-plugin/plugin.json       # Codex plugin manifest
+.codex-plugin/plugin.json       # Codex manifest for older Codex versions (see below)
 .cursor-plugin/                 # Cursor plugin + marketplace manifests
 plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) manifests
 .mcp.json                       # MCP server config used by Claude Code and Codex
@@ -32,6 +33,12 @@ evals/                          # claude plugin eval suite: mock Honeybadger ser
 ## Versioning
 
 The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json`. Bump them together; `scripts/validate.py` fails if they differ.
+
+## OpenAI plugin directory
+
+The ChatGPT and Codex listing lives in root `plugin.json` under `extensions["com.openai"]`: `interface` for the listing and `review.test_cases` for OpenAI's review. When that block exists, OpenAI and current Codex ignore `.codex-plugin/plugin.json` entirely (the two aren't merged). Keep the overlay for older Codex versions, but make listing changes in `plugin.json`.
+
+Keep `mcp.json` to `type` and `url`. OpenAI documents an auth block at `mcpServers.<name>.extensions["com.openai"]`, but the Agent Plugins schema doesn't allow it there, and Codex drops a server that has one ([openai/codex#53658](https://github.com/openai/codex/issues/53658)). Clients discover OAuth from the server instead.
 
 ## Commits
 

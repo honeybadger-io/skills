@@ -15,7 +15,7 @@ Works with Claude Code, Codex, Cursor, and any agent that supports the [Agent Pl
 
 ### Codex and Cursor
 
-Add this repository as a plugin source in your agent. The manifests are in `.codex-plugin/` and `.cursor-plugin/`.
+Add this repository as a plugin source in your agent. Codex reads the root `plugin.json` (older versions read `.codex-plugin/`), and Cursor reads `.cursor-plugin/`.
 
 ### Other agents
 
