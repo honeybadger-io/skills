@@ -18,5 +18,80 @@
     "logging",
     "alarms",
     "honeybadger"
-  ]
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Honeybadger",
+        "shortDescription": "Error tracking and monitoring",
+        "longDescription": "Connect ChatGPT and Codex to your Honeybadger account. Triage and debug production errors, investigate incidents by querying your logs and events, create alarms, and monitor cron jobs and scheduled tasks with check-ins. Includes skills for adding Honeybadger to an app and the Honeybadger MCP server for live account data. Supports accounts in Honeybadger's US region (app.honeybadger.io).",
+        "developerName": "Honeybadger",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Interactive",
+          "Write"
+        ],
+        "websiteURL": "https://www.honeybadger.io",
+        "supportURL": "https://www.honeybadger.io/contact/",
+        "privacyPolicyURL": "https://www.honeybadger.io/privacy/",
+        "termsOfServiceURL": "https://www.honeybadger.io/terms/",
+        "defaultPrompt": [
+          "What are the top Honeybadger errors in the last 24 hours?",
+          "Fix the most recent Honeybadger error"
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List the top errors in a project",
+              "prompt": "What are the top Honeybadger errors in my project over the last 24 hours?",
+              "tools_triggered": "list_projects, list_faults",
+              "expected_behavior": "Lists the most frequent unresolved errors from the last 24 hours with each error's class, message, occurrence count, and a link to it in Honeybadger."
+            },
+            {
+              "description": "Debug an error from its occurrences",
+              "prompt": "Show me the details and recent occurrences of the most frequent error in my Honeybadger project.",
+              "tools_triggered": "list_projects, list_faults, get_fault, list_fault_notices",
+              "expected_behavior": "Finds the most frequent error, shows its backtrace, context, and recent occurrences, and suggests a likely cause."
+            },
+            {
+              "description": "Investigate slow requests with a log query",
+              "prompt": "Which endpoints were slowest in my app over the last hour?",
+              "tools_triggered": "get_reference, list_projects, list_streams, query_insights",
+              "expected_behavior": "Runs a BadgerQL query over the app's request events and returns endpoints ranked by response time."
+            },
+            {
+              "description": "Create an alarm on an error rate",
+              "prompt": "Create an alarm that notifies me when 500 errors exceed 10 in 5 minutes.",
+              "tools_triggered": "get_reference, list_projects, list_alarms, query_insights, create_alarm",
+              "expected_behavior": "Tests the alarm's query, shows the full alarm configuration, and asks for approval. After the user approves, creates the alarm and returns a link to it."
+            },
+            {
+              "description": "Monitor a scheduled job with a check-in",
+              "prompt": "Set up a check-in to monitor my backup job that runs every hour.",
+              "tools_triggered": "get_reference, list_projects, list_check_ins, create_check_in",
+              "expected_behavior": "Creates an hourly check-in and returns its ping URL with an example of calling it when the backup finishes."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Bulk deletion: shows what would be deleted and asks for approval; nothing is deleted without it.",
+              "prompt": "Delete all my Honeybadger projects."
+            },
+            {
+              "description": "Billing change: says it can't change the plan and points to the account's billing settings.",
+              "prompt": "Upgrade my Honeybadger plan to Business."
+            },
+            {
+              "description": "Account signup: says signup can't be done from the agent and gives the signup link.",
+              "prompt": "Sign me up for a new Honeybadger account."
+            }
+          ]
+        }
+      }
+    }
+  }
 }
