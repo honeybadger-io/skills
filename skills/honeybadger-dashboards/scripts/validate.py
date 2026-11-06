@@ -21,7 +21,6 @@ import re
 import sys
 
 GRID_COLUMNS = 12
-WIDGET_WARN_COUNT = 30  # more than this has been rejected on save
 
 INTERNAL_EVENTS = re.compile(r"\b(notice|deploy|uptime_check|check_in)\b")
 
@@ -49,18 +48,25 @@ def check(dashboard):
     errors, warnings = [], []
     if not isinstance(dashboard, dict):
         return ["dashboard must be a JSON object"], warnings
-    widgets = dashboard.get("widgets")
+    if "widgets" not in dashboard:
+        return errors, warnings  # an update without widgets keeps the existing ones
+    widgets = dashboard["widgets"]
     if not isinstance(widgets, list):
         return ["dashboard: widgets must be an array"], warnings
-    if len(widgets) > WIDGET_WARN_COUNT:
-        warnings.append(f"dashboard: {len(widgets)} widgets; more than {WIDGET_WARN_COUNT} may be rejected on save")
 
-    occupied = {}
+    occupied, ids = {}, set()
     for index, widget in enumerate(widgets):
         name = widget_name(widget, index)
         if not isinstance(widget, dict):
             errors.append(f"{name}: must be an object")
             continue
+        wid = widget.get("id")
+        if wid is not None and not isinstance(wid, str):
+            errors.append(f"{name}: id must be a string")
+        elif wid in ids:
+            errors.append(f"{name}: id {wid!r} appears twice; the second copy would be a duplicate")
+        elif wid:
+            ids.add(wid)
         check_grid(widget.get("grid"), name, occupied, errors)
         config = widget.get("config")
         if widget.get("type") == "insights_vis" and isinstance(config, dict):
@@ -85,9 +91,10 @@ def check_grid(grid, name, occupied, errors):
         other = occupied.get(cell)
         if other is not None:
             errors.append(f"{name}: overlaps {other} at column {cell[0]}, row {cell[1]}")
-            return
+            break
+    # Mark the cells even after an overlap, so a later widget that overlaps this one is reported too.
     for cell in cells:
-        occupied[cell] = name
+        occupied.setdefault(cell, name)
 
 
 def check_query(config, name, warnings):
@@ -121,20 +128,34 @@ def changed_fields(old, new, prefix=""):
 def diff(before, after):
     """Return (errors, warnings, lines): id problems, removals, and the added/changed/removed widgets."""
     errors, warnings, lines = [], [], []
-    old = {w["id"]: (i, w) for i, w in enumerate(before.get("widgets") or []) if isinstance(w, dict) and w.get("id")}
+    left_out = [key for key in ("title", "default_ts") if key in before and key not in after]
+    if left_out:
+        warnings.append(f"the proposed dashboard leaves out {', '.join(left_out)}; "
+                        "an update that replaces the whole dashboard would reset them, so send them back unchanged")
+    for key in ("title", "default_ts"):
+        if key in after and before.get(key) != after.get(key):
+            lines.append(f"{key}: {before.get(key)!r} -> {after.get(key)!r}")
+    if "widgets" not in after:
+        lines.append("widgets: not sent, so the existing widgets stay")
+        return errors, warnings, lines
+    if not isinstance(after["widgets"], list):
+        return errors, warnings, lines  # check() reports it
+
+    old_widgets = before.get("widgets") if isinstance(before.get("widgets"), list) else []
+    old = {w["id"]: (i, w) for i, w in enumerate(old_widgets) if isinstance(w, dict) and isinstance(w.get("id"), str) and w["id"]}
     seen = set()
     added, changed, same = [], [], 0
-    for i, widget in enumerate(after.get("widgets") or []):
+    for i, widget in enumerate(after["widgets"]):
         if not isinstance(widget, dict):
             continue
         name = widget_name(widget, i)
         wid = widget.get("id")
-        if not wid:
-            added.append(name)
+        if not isinstance(wid, str) or not wid:
+            if wid is None or wid == "":
+                added.append(name)
             continue
         if wid in seen:
-            errors.append(f"{name}: id {wid!r} appears twice; the second copy would be a duplicate")
-            continue
+            continue  # check() reports duplicates
         seen.add(wid)
         if wid not in old:
             warnings.append(f"{name}: id {wid!r} is not on the existing dashboard; leave id off a new widget unless you are restoring one")
@@ -149,10 +170,6 @@ def diff(before, after):
     if removed:
         warnings.append(f"the update will delete {len(removed)} widget(s): {', '.join(removed)}; "
                         "tell the user, and keep them unless the user asked to remove them")
-    if "title" in after and before.get("title") != after.get("title"):
-        lines.append(f"title: {before.get('title')!r} -> {after.get('title')!r}")
-    if "default_ts" in after and before.get("default_ts") != after.get("default_ts"):
-        lines.append(f"default_ts: {before.get('default_ts')!r} -> {after.get('default_ts')!r}")
     lines.append(f"added ({len(added)}): " + (", ".join(added) or "none"))
     lines.append(f"changed ({len(changed)}): " + (", ".join(changed) or "none"))
     lines.append(f"removed ({len(removed)}): " + (", ".join(removed) or "none"))
@@ -180,7 +197,8 @@ def run(proposed_path, before_path=None):
             diff_errors, diff_warnings, diff_lines = diff(before, proposed)
             errors.extend(diff_errors)
             warnings.extend(diff_warnings)
-    elif isinstance(proposed, dict) and any(isinstance(w, dict) and w.get("id") for w in proposed.get("widgets") or []):
+    elif isinstance(proposed, dict) and isinstance(proposed.get("widgets"), list) and any(
+            isinstance(w, dict) and w.get("id") for w in proposed["widgets"]):
         warnings.append("some widgets have ids but no --before dashboard was given; ids must come from the dashboard being updated")
 
     out.extend(f"error: {e}" for e in errors)
@@ -189,7 +207,8 @@ def run(proposed_path, before_path=None):
         out.append("diff against the existing dashboard:")
         out.extend(f"  {line}" for line in diff_lines)
     if not errors:
-        count = len(proposed.get("widgets") or []) if isinstance(proposed, dict) else 0
+        widgets = proposed.get("widgets") if isinstance(proposed, dict) else None
+        count = len(widgets) if isinstance(widgets, list) else 0
         out.append(f"ok: {count} widgets, {len(warnings)} warnings")
     return (1 if errors else 0), out
 

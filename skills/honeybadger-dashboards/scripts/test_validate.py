@@ -58,9 +58,6 @@ class CheckTests(unittest.TestCase):
         dash["widgets"][0]["config"]["vis"]["chart_config"]["anything"] = 1
         self.assertEqual(self.errors(dash), [])
 
-    def test_widgets_must_be_an_array(self):
-        self.assertTrue(any("widgets must be an array" in e for e in self.errors({"title": "Shop"})))
-
     def test_grid_overflow_and_overlap(self):
         overflow = dashboard(widget("A", 8, 0, 6, 4, chart_config=LINE))
         self.assertTrue(any("exceeds 12 columns" in e for e in self.errors(overflow)))
@@ -72,9 +69,34 @@ class CheckTests(unittest.TestCase):
                              widget("C", 0, 4, 12, 2, chart_config=LINE))
         self.assertEqual(self.errors(adjacent), [])
 
-    def test_widget_count_warning(self):
-        many = dashboard(*[widget(f"W{i}", 0, i * 2, 12, 2, chart_config=LINE) for i in range(31)])
-        self.assertTrue(any("31 widgets" in w for w in self.warnings(many)))
+    def test_overlaps_are_all_reported(self):
+        chain = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE), widget("B", 3, 0, 6, 4, chart_config=LINE),
+                          widget("C", 7, 0, 2, 4, chart_config=LINE))
+        errs = self.errors(chain)
+        self.assertTrue(any(e.startswith('widget 1 "B": overlaps') for e in errs))
+        self.assertTrue(any(e.startswith('widget 2 "C": overlaps') for e in errs))
+
+    def test_duplicate_ids_without_before(self):
+        dash = dashboard(widget("A", 0, 0, 6, 4, wid="w1", chart_config=LINE), widget("B", 6, 0, 6, 4, wid="w1", chart_config=LINE))
+        self.assertTrue(any("'w1' appears twice" in e for e in self.errors(dash)))
+
+    def test_widgets_left_out(self):
+        self.assertEqual(validate.check({"title": "Renamed"}), ([], []))
+
+    def test_bad_ids_and_widgets(self):
+        self.assertTrue(any("widgets must be an array" in e for e in self.errors({"widgets": 5})))
+        dash = dashboard(widget("A", 0, 0, 6, 4, wid="w1", chart_config=LINE))
+        dash["widgets"][0]["id"] = ["w1"]
+        self.assertTrue(any("id must be a string" in e for e in self.errors(dash)))
+
+    def test_empty_streams_read_every_stream(self):
+        notice = 'filter event_type::str == "notice" | stats count() as count by bin(1h) as time'
+        dash = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, chart_config=LINE, streams=[]))
+        self.assertEqual(self.warnings(dash), [])
+
+    def test_parameter_warning(self):
+        dash = dashboard(widget("A", 0, 0, 6, 4, query='filter env::str == "${env:-production}" | stats count() as count by bin(1h) as time', chart_config=LINE))
+        self.assertTrue(any("has parameters" in w for w in self.warnings(dash)))
 
     def test_internal_stream_warning(self):
         notice = 'filter event_type::str == "notice" | stats count() as count by klass::str'
@@ -134,15 +156,34 @@ class DiffTests(unittest.TestCase):
             widget("Invented", 6, 4, 6, 4, wid="w9", chart_config=LINE),
         )
         errors, warnings, lines = validate.diff(self.before, after)
-        self.assertTrue(any("'w1' appears twice" in e for e in errors))
+        self.assertTrue(any("'w1' appears twice" in e for e in validate.check(after)[0]))
         self.assertTrue(any("'w9' is not on the existing dashboard" in w for w in warnings))
         self.assertIn('added (1): widget 3 "Invented"', "\n".join(lines))
 
     def test_widgets_only_update(self):
         after = {"widgets": json.loads(json.dumps(self.before["widgets"]))}
-        errors, warnings, lines = validate.diff(self.before, after)
+        errors, _, lines = validate.diff(self.before, after)
+        self.assertEqual(errors, [])
+        self.assertNotIn("title:", "\n".join(lines))
+
+    def test_title_and_default_ts_changes(self):
+        after = json.loads(json.dumps(self.before))
+        after.update({"title": "Shop 2", "default_ts": "P7D"})
+        _, warnings, lines = validate.diff(self.before, after)
+        text = "\n".join(lines)
+        self.assertIn("title: 'Shop' -> 'Shop 2'", text)
+        self.assertIn("default_ts: 'P1D' -> 'P7D'", text)
+        self.assertEqual(warnings, [])
+
+    def test_left_out_title_and_default_ts_warn(self):
+        after = {"widgets": json.loads(json.dumps(self.before["widgets"]))}
+        _, warnings, _ = validate.diff(self.before, after)
+        self.assertTrue(any("leaves out title, default_ts" in w for w in warnings))
+
+    def test_left_out_widgets_are_kept(self):
+        errors, warnings, lines = validate.diff(self.before, {"title": "Shop", "default_ts": "P1D"})
         self.assertEqual((errors, warnings), ([], []))
-        self.assertNotIn("title", "\n".join(lines))
+        self.assertIn("widgets: not sent", "\n".join(lines))
 
 
 class RunTests(unittest.TestCase):
@@ -178,6 +219,16 @@ class RunTests(unittest.TestCase):
         code, lines = validate.run(self.write(proposed))
         self.assertEqual(code, 0)
         self.assertTrue(any("no --before" in line for line in lines))
+
+    def test_malformed_input_does_not_crash(self):
+        before = dashboard(widget("Requests", 0, 0, 6, 4, wid="w1", chart_config=LINE))
+        code, lines = validate.run(self.write({"widgets": 5}), self.write(before))
+        self.assertEqual(code, 1)
+        listed = dashboard(widget("Requests", 0, 0, 6, 4, chart_config=LINE))
+        listed["widgets"][0]["id"] = ["w1"]
+        code, lines = validate.run(self.write(listed), self.write(before))
+        self.assertEqual(code, 1)
+        self.assertTrue(any("id must be a string" in line for line in lines))
 
     def test_bad_json(self):
         f = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
