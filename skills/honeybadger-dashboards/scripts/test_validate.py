@@ -69,6 +69,10 @@ class CheckTests(unittest.TestCase):
                              widget("C", 0, 4, 12, 2, chart_config=LINE))
         self.assertEqual(self.errors(adjacent), [])
 
+    def test_tall_widget_is_fast(self):
+        tall = dashboard(widget("A", 0, 0, 12, 10**9, chart_config=LINE), widget("B", 0, 5, 6, 4, chart_config=LINE))
+        self.assertTrue(any("overlaps" in e for e in self.errors(tall)))
+
     def test_overlaps_are_all_reported(self):
         chain = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE), widget("B", 3, 0, 6, 4, chart_config=LINE),
                           widget("C", 7, 0, 2, 4, chart_config=LINE))
@@ -89,26 +93,7 @@ class CheckTests(unittest.TestCase):
         dash["widgets"][0]["id"] = ["w1"]
         self.assertTrue(any("id must be a string" in e for e in self.errors(dash)))
 
-    def test_empty_streams_read_every_stream(self):
-        notice = 'filter event_type::str == "notice" | stats count() as count by bin(1h) as time'
-        dash = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, chart_config=LINE, streams=[]))
-        self.assertEqual(self.warnings(dash), [])
 
-    def test_parameter_warning(self):
-        dash = dashboard(widget("A", 0, 0, 6, 4, query='filter env::str == "${env:-production}" | stats count() as count by bin(1h) as time', chart_config=LINE))
-        self.assertTrue(any("has parameters" in w for w in self.warnings(dash)))
-
-    def test_internal_stream_warning(self):
-        notice = 'filter event_type::str == "notice" | stats count() as count by klass::str'
-        bar = {"categoryField": "klass", "valueField": "count"}
-        missing = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, view="bar", chart_config=bar, streams=["default"]))
-        self.assertTrue(any('lacks "internal"' in w for w in self.warnings(missing)))
-        present = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, view="bar", chart_config=bar, streams=["internal"]))
-        self.assertFalse(any('lacks "internal"' in w for w in self.warnings(present)))
-        deployments = dashboard(widget("Deploys", 0, 0, 6, 4, wtype="deployments"))
-        self.assertEqual(self.warnings(deployments), [])
-        every_stream = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, view="bar", chart_config=bar))
-        self.assertEqual(self.warnings(every_stream), [])
 
 
 class DiffTests(unittest.TestCase):
@@ -159,6 +144,7 @@ class DiffTests(unittest.TestCase):
         self.assertTrue(any("'w1' appears twice" in e for e in validate.check(after)[0]))
         self.assertTrue(any("'w9' is not on the existing dashboard" in w for w in warnings))
         self.assertIn('added (1): widget 3 "Invented"', "\n".join(lines))
+        self.assertFalse(any("restoring" in w for w in warnings))
 
     def test_widgets_only_update(self):
         after = {"widgets": json.loads(json.dumps(self.before["widgets"]))}
@@ -206,7 +192,6 @@ class RunTests(unittest.TestCase):
         kinds = [line.split(" ")[0].rstrip(":") for line in lines if line.startswith(("error", "warning", "diff"))]
         self.assertEqual(kinds, sorted(kinds, key=["error", "warning", "diff"].index))
         self.assertTrue(any("exceeds 12 columns" in line for line in lines))
-        self.assertTrue(any('lacks "internal"' in line for line in lines))
 
     def test_ok_run(self):
         proposed = dashboard(widget("Requests", 0, 0, 6, 4, chart_config=LINE))
@@ -229,6 +214,15 @@ class RunTests(unittest.TestCase):
         code, lines = validate.run(self.write(listed), self.write(before))
         self.assertEqual(code, 1)
         self.assertTrue(any("id must be a string" in line for line in lines))
+
+    def test_deletion_only_update(self):
+        before = dashboard(widget("Requests", 0, 0, 6, 4, wid="w1", chart_config=LINE),
+                           widget("Errors", 6, 0, 6, 4, wid="w2", wtype="errors"))
+        proposed = dashboard(widget("Requests", 0, 0, 6, 4, wid="w1", chart_config=LINE))
+        code, lines = validate.run(self.write(proposed), self.write(before))
+        self.assertEqual(code, 0)
+        self.assertTrue(any('will delete 1 widget(s): widget 1 "Errors"' in line for line in lines))
+        self.assertIn('  removed (1): widget 1 "Errors"', lines)
 
     def test_bad_json(self):
         f = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)

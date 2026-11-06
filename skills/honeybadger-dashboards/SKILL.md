@@ -42,13 +42,13 @@ Write the proposed dashboard (`title`, `default_ts`, `widgets`) to a JSON file o
 python3 -I <skill dir>/scripts/validate.py proposed.json --before before.json
 ```
 
-`before.json` is the backup; leave it off for a new dashboard. The script checks what the save doesn't. It rejects grid overflow, overlaps, and duplicate widget ids. It warns about an id the dashboard didn't have, a left-out `title` or `default_ts`, Honeybadger events on a widget whose `streams` leave out `internal`, parameters, and every widget the update would delete, and it lists which widgets will be added, changed (with the fields that changed), and removed. A widget you did not mean to remove means a widget is missing from your file: put it back. Fix every error before going on. A different command being denied does not mean this one will be: try it. Only if this command itself fails (no Python, or no permission to run it) make the same checks by hand, and say that you did.
+`before.json` is the backup; leave it off for a new dashboard. The script checks what the save doesn't. It rejects grid overflow, overlaps, and duplicate widget ids. It warns about an id the dashboard didn't have, a left-out `title` or `default_ts`, and every widget the update would delete, and it lists which widgets will be added, changed (with the fields that changed), and removed. A widget you did not mean to remove means a widget is missing from your file: put it back. Fix every error before going on. A different command being denied does not mean this one will be: try it. Only if this command itself fails (no Python, or no permission to run it), check by hand: compare the widget ids in the backup with the ids you are sending, and lay out the grid with no overlaps. Say that you did.
 
 ## 4. Save and report
 
 For an update, write the backup first. Then call `create_dashboard` or `update_dashboard` once. If the save is rejected, nothing changed: fix the field the error names and save again.
 
-Give the user the dashboard link from the response (`url`, or `links.web`). Do not build the link yourself: EU accounts are on a different host, and the response already has the right one. Say what was added, changed, and removed, using the validator's diff, and that the other widgets are as they were. For an update, give the backup path and say the change can be undone.
+Give the user the dashboard link from the response (`url`, or `links.web`). Say what was added, changed, and removed, using the validator's diff, and that the other widgets are as they were. For an update, give the backup path and say the change can be undone.
 
 ## 5. Undo an update
 

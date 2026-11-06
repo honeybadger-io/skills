@@ -17,12 +17,9 @@ Standard library only.
 
 import argparse
 import json
-import re
 import sys
 
 GRID_COLUMNS = 12
-
-INTERNAL_EVENTS = re.compile(r"\b(notice|deploy|uptime_check|check_in)\b")
 
 
 def is_int(value):
@@ -54,7 +51,7 @@ def check(dashboard):
     if not isinstance(widgets, list):
         return ["dashboard: widgets must be an array"], warnings
 
-    occupied, ids = {}, set()
+    placed, ids = [], set()
     for index, widget in enumerate(widgets):
         name = widget_name(widget, index)
         if not isinstance(widget, dict):
@@ -67,14 +64,11 @@ def check(dashboard):
             errors.append(f"{name}: id {wid!r} appears twice; the second copy would be a duplicate")
         elif wid:
             ids.add(wid)
-        check_grid(widget.get("grid"), name, occupied, errors)
-        config = widget.get("config")
-        if widget.get("type") == "insights_vis" and isinstance(config, dict):
-            check_query(config, name, warnings)
+        check_grid(widget.get("grid"), name, placed, errors)
     return errors, warnings
 
 
-def check_grid(grid, name, occupied, errors):
+def check_grid(grid, name, placed, errors):
     if grid is None:
         return
     if not isinstance(grid, dict) or not all(is_int(grid.get(k)) for k in "xywh"):
@@ -86,28 +80,13 @@ def check_grid(grid, name, occupied, errors):
         return
     if x + w > GRID_COLUMNS:
         errors.append(f"{name}: grid x {x} + w {w} exceeds {GRID_COLUMNS} columns")
-    cells = [(col, row) for col in range(x, min(x + w, GRID_COLUMNS)) for row in range(y, y + h)]
-    for cell in cells:
-        other = occupied.get(cell)
-        if other is not None:
-            errors.append(f"{name}: overlaps {other} at column {cell[0]}, row {cell[1]}")
+    right = min(x + w, GRID_COLUMNS)
+    for other, ox, oy, oright, obottom in placed:
+        if x < oright and ox < right and y < obottom and oy < y + h:
+            errors.append(f"{name}: overlaps {other} at column {max(x, ox)}, row {max(y, oy)}")
             break
-    # Mark the cells even after an overlap, so a later widget that overlaps this one is reported too.
-    for cell in cells:
-        occupied.setdefault(cell, name)
-
-
-def check_query(config, name, warnings):
-    query = config.get("query")
-    if not isinstance(query, str):
-        return
-    # A widget with no streams reads every stream; one that lists them reads only those.
-    streams = config.get("streams")
-    if INTERNAL_EVENTS.search(query) and isinstance(streams, list) and streams and "internal" not in streams:
-        warnings.append(f"{name}: the query mentions a Honeybadger event but streams lacks \"internal\", so it will read none of them")
-    if "${" in query:
-        warnings.append(f"{name}: the query has parameters; query_insights does not expand them, so test with the values substituted")
-
+    # Keep an overlapping widget too, so a later widget that overlaps it is reported.
+    placed.append((name, x, y, right, y + h))
 
 def changed_fields(old, new, prefix=""):
     """Return the dotted paths of the fields that differ between two widgets."""
@@ -158,7 +137,7 @@ def diff(before, after):
             continue  # check() reports duplicates
         seen.add(wid)
         if wid not in old:
-            warnings.append(f"{name}: id {wid!r} is not on the existing dashboard; leave id off a new widget unless you are restoring one")
+            warnings.append(f"{name}: id {wid!r} is not on the existing dashboard; leave id off a new widget, including one restored from a backup")
             added.append(name)
             continue
         fields = changed_fields(old[wid][1], widget)
