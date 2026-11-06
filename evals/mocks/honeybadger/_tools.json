@@ -791,6 +791,138 @@
           "project_id"
         ]
       }
+    },
+    {
+      "name": "list_dashboards",
+      "description": "List all Insights dashboards for a Honeybadger project",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "The ID of the project to list dashboards for",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      }
+    },
+    {
+      "name": "get_dashboard",
+      "description": "Get a single Insights dashboard by ID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "The ID of the project the dashboard belongs to",
+            "minimum": 1,
+            "type": "number"
+          },
+          "dashboard_id": {
+            "description": "The ID of the dashboard to retrieve",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dashboard_id"
+        ]
+      }
+    },
+    {
+      "name": "create_dashboard",
+      "description": "Create a new Insights dashboard for a Honeybadger project. IMPORTANT: Requires reference topics: dashboards, charts, queries, badgerql \u2014 fetch via get_reference first (skip topics still visible in your context). Verify each widget's query returns the expected results via query_insights before creating the dashboard.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "The ID of the project to create the dashboard in",
+            "minimum": 1,
+            "type": "number"
+          },
+          "title": {
+            "description": "The title of the dashboard",
+            "type": "string"
+          },
+          "default_ts": {
+            "description": "Default time range for the dashboard. ISO 8601 duration (e.g., P1D, PT3H) or keyword (today, yesterday, week, month).",
+            "type": "string"
+          },
+          "widgets": {
+            "description": "JSON array of widget objects. The dashboards reference topic has the full widget schema and examples. Each widget needs: type (insights_vis, alarms, errors, deployments, checkins, uptime), and optionally: grid ({x,y,w,h}), presentation ({title, subtitle}), config (type-specific settings). For insights_vis widgets, config should include query (BadgerQL string) and vis ({view, chart_config}).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "title",
+          "widgets"
+        ]
+      }
+    },
+    {
+      "name": "update_dashboard",
+      "description": "Update an existing Insights dashboard. IMPORTANT: Requires reference topics: dashboards, charts, queries, badgerql \u2014 fetch via get_reference first (skip topics still visible in your context).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "The ID of the project the dashboard belongs to",
+            "minimum": 1,
+            "type": "number"
+          },
+          "dashboard_id": {
+            "description": "The ID of the dashboard to update",
+            "type": "string"
+          },
+          "title": {
+            "description": "The title of the dashboard",
+            "type": "string"
+          },
+          "default_ts": {
+            "description": "Default time range for the dashboard. ISO 8601 duration (e.g., P1D, PT3H) or keyword (today, yesterday, week, month).",
+            "type": "string"
+          },
+          "widgets": {
+            "description": "JSON array of widget objects. The dashboards reference topic has the full widget schema and examples. Each widget needs: type (insights_vis, alarms, errors, deployments, checkins, uptime), and optionally: grid ({x,y,w,h}), presentation ({title, subtitle}), config (type-specific settings). For insights_vis widgets, config should include query (BadgerQL string) and vis ({view, chart_config}).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dashboard_id",
+          "title",
+          "widgets"
+        ]
+      }
+    },
+    {
+      "name": "delete_dashboard",
+      "description": "Delete an Insights dashboard. Deleting takes two calls: the first deletes nothing and returns a preview with a confirmation token. Show the preview to the user, and only if they approve, call again with the same arguments and confirm set to that token.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "The ID of the project the dashboard belongs to",
+            "minimum": 1,
+            "type": "number"
+          },
+          "dashboard_id": {
+            "description": "The ID of the dashboard to delete",
+            "type": "string"
+          },
+          "confirm": {
+            "description": "Confirmation token from this tool's previous preview. Pass it only after the user has approved the deletion shown in that preview.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dashboard_id"
+        ]
+      }
     }
   ]
 }

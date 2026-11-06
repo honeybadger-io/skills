@@ -51,6 +51,7 @@ Run before committing:
 ```bash
 python3 scripts/validate.py
 claude plugin validate .
+python3 -I -B skills/honeybadger-dashboards/scripts/test_validate.py
 ```
 
 When you change a skill, run its evals (see `evals/README.md`) and add a case for any new behavior.

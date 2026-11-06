@@ -7,7 +7,7 @@
         "environment_name": "production",
         "hostname": "shop-web-1",
         "project_root": "/var/www/shop/releases/20260920153512",
-        "revision": "71983319a6b4fdf4b6b9ac5aeda327487a338a0d",
+        "revision": "53d13ecf016751160746c7955b4601123ea815be",
         "time": "2026-10-07 18:40:02 UTC",
         "pid": 4242
       },
@@ -61,7 +61,7 @@
         "id": 880021,
         "local_username": "deploy",
         "repository": "https://github.com/example/shop",
-        "revision": "71983319a6b4fdf4b6b9ac5aeda327487a338a0d",
+        "revision": "53d13ecf016751160746c7955b4601123ea815be",
         "url": "https://github.com/example/shop/compare/4ada677...7198331"
       }
     }
