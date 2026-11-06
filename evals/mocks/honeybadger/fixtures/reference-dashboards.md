@@ -35,7 +35,7 @@ Dashboard responses also include the dashboard's page in the web UI (read-only) 
 Valid widget `type` values: `insights_vis`, `alarms`, `errors`, `deployments`, `checkins`, `uptime`.
 
 ### `insights_vis`
-- `streams`: array of default|internal — Streams to query (defaults to ["default"])
+- `streams`: array of default|internal — Streams to query, by slug: `default` (the project's own stream) or `internal`. Anything else is refused (422). Left out or empty, set to the project's current streams. A slug whose stream the project doesn't have yet, right after it's created, is dropped.
 - `query`: any — BadgerQL query producing the widget's data
 - `vis`: any — How to render the result: `{view, chart_config}`
 

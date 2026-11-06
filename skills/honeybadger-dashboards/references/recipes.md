@@ -1,6 +1,6 @@
 # Chart recipes
 
-Shapes that are not obvious from the `charts` reference. Every `chart_config` key names an output alias of the query, so alias each aggregate. Run each query with `query_insights` before it goes into a widget; the examples use Rails request and job events, so swap in the event types and fields the project actually has.
+Shapes that are not obvious from the `charts` reference. Run each query with `query_insights` before it goes into a widget; the examples use Rails request and job events, so swap in the event types and fields the project actually has.
 
 ## Several numbers in one billboard
 
@@ -65,22 +65,3 @@ filter event_type::str == "perform.sidekiq"
 ```
 
 An `area` view with `"stacked": true`, `"xField": "time"`, `"yField": "count"`, and `"zField": "outcome"` draws the same data as stacked areas.
-
-## Honeybadger's own events
-
-`notice`, `deploy`, and the other events Honeybadger generates are on the internal stream, which a widget does not read unless its `streams` say so:
-
-```json
-{
-  "type": "insights_vis",
-  "presentation": {"title": "Errors by class"},
-  "grid": {"x": 0, "y": 8, "w": 6, "h": 4},
-  "config": {
-    "streams": ["internal"],
-    "query": "filter event_type::str == \"notice\" | stats count() as count by klass::str | sort count desc | limit 10",
-    "vis": {"view": "bar", "chart_config": {"categoryField": "klass", "valueField": "count"}}
-  }
-}
-```
-
-For a plain list of recent errors, the `errors` widget type needs no query at all; see the `dashboards` topic for its `@ts` and `@ts.end` tokens.
