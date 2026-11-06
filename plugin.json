@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "honeybadger",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server.",
   "author": {
     "name": "Honeybadger Industries LLC",

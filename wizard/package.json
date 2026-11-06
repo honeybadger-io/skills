@@ -1,0 +1,45 @@
+{
+  "name": "@honeybadger-io/wizard",
+  "version": "0.1.0",
+  "description": "Set up Honeybadger with your coding agent: installs the Honeybadger skills and MCP server, then starts the agent to add Honeybadger to your app",
+  "keywords": [
+    "honeybadger",
+    "error-tracking",
+    "monitoring",
+    "mcp",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "homepage": "https://github.com/honeybadger-io/skills/tree/main/wizard",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/honeybadger-io/skills.git",
+    "directory": "wizard"
+  },
+  "license": "MIT",
+  "author": "Honeybadger Industries LLC <support@honeybadger.io>",
+  "type": "module",
+  "bin": {
+    "wizard": "bin/wizard.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node bin/wizard.js",
+    "test": "node --test",
+    "prepack": "node scripts/bundle-skills.js",
+    "postpack": "node scripts/bundle-skills.js --clean"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "add-mcp": "^2.4.1",
+    "cross-spawn": "^7.0.6"
+  }
+}
