@@ -123,7 +123,7 @@ The skill saves what the user asked for without stopping to ask, after writing a
 
 | Case | Checks |
 |------|--------|
-| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard`, the query, and a backup before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the `url`, and the backup path |
+| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard`, the query, and a backup holding all four widget ids before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the `url`, and the backup path |
 | `dash-new-dashboard` | "A dashboard for checkout health": runs the queries, then exactly one `create_dashboard` with at least three widgets; reports the `url` |
 | `dash-internal-stream` | A `notice` widget: `get_dashboard`, `query_insights`, and a backup before exactly one update that keeps all four ids and gives the widget the `internal` stream; reports the `url` |
 | `dash-fix-widget` | "This widget shows no data. Fix it.": names the missing `internal` stream, backs up, and saves the fix once, keeping all four ids |
