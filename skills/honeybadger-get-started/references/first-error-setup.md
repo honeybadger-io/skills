@@ -68,13 +68,13 @@ the first case that applies.
    checkbox, a snippet that notifies or raises): run it once, exactly as the docs show.
    If the docs offer several independent triggers (WordPress has separate PHP and JS
    test checkboxes), pick one.
-3. **The docs have no test step** (for example Ember): trigger one yourself, through the
-   running app. Prefer an existing code path that can be made to fail (a form with
-   invalid input, a 404 page, a dev-only console call to the client's `notify`), or ask
-   the user how they would trigger an error. Only if neither works, add a temporary
-   trigger (a raise behind a one-off flag or a dev-only route) and remove it afterward.
-   Give the error a unique message (e.g. `Honeybadger test error <timestamp>`) so you can
-   find exactly it. If you know how to start the app, offer to do it; otherwise ask the
+3. **The docs have no test step** (for example Ember): send one yourself, through the
+   running app, with a unique message (e.g. `Honeybadger test error <timestamp>`) so you
+   can find exactly it. Prefer a call that leaves no code behind, such as the client's
+   `notify` run once from the browser console or a Rails/Django shell. Otherwise add a
+   temporary trigger (a dev-only `notify` call, or a raise behind a one-off flag or a
+   dev-only route) and remove it afterward. Don't rely on an existing bug or a failing
+   page: its message isn't unique, and it may not be reported at all. If you know how to start the app, offer to do it; otherwise ask the
    user to start it or tell you how.
 
 Client libraries don't report from development or test environments by default. The
