@@ -1,0 +1,1 @@
+{"id": 1002, "name": "Marketing Site", "active": true, "token": "hbp_fixture_marketing_key", "environments": ["production"], "fault_count": 7, "unresolved_fault_count": 1, "users": [{"id": 7, "email": "dev@shop.example", "name": "Shop Dev"}]}
