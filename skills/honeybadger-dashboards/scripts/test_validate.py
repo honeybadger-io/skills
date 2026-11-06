@@ -36,32 +36,6 @@ def dashboard(*widgets, title="Shop"):
 LINE = {"xField": "time", "yField": "count"}
 
 
-class SchemaTests(unittest.TestCase):
-    """The rules come from dashboards.json; these fail if its layout stops matching the loader."""
-
-    def setUp(self):
-        with open(validate.SCHEMA_PATH, encoding="utf-8") as f:
-            self.schema = json.load(f)
-        self.widget = self.schema["properties"]["widgets"]["items"]
-
-    def test_every_widget_type_has_config_rules(self):
-        types = set(self.widget["properties"]["type"]["enum"])
-        self.assertEqual(set(validate.CONFIG_KEYS), types)
-
-    def test_every_view_has_chart_rules(self):
-        views = set(self.widget["properties"]["config"]["properties"]["vis"]["properties"]["view"]["enum"])
-        self.assertEqual(set(validate.CHART_CONFIG), views)
-
-    def test_rules_are_populated(self):
-        self.assertEqual(validate.DASHBOARD_KEYS, {"title", "default_ts", "widgets"})
-        self.assertEqual(validate.GRID_KEYS, {"x", "y", "w", "h"})
-        self.assertEqual(validate.STREAMS, {"default", "internal"})
-        self.assertEqual(validate.GROUP_TYPES, {"fields", "events"})
-        self.assertEqual(validate.MAX_TEXT, 255)
-        self.assertEqual(validate.CHART_CONFIG["bar"][1], {"categoryField", "valueField"})
-        self.assertEqual(validate.EVENTS_REQUIRED, {"billboard": "valueField", "line": "yField", "area": "yField"})
-        self.assertIn(("errors", "sort"), validate.CONFIG_ENUMS)
-
 
 class CheckTests(unittest.TestCase):
     def errors(self, dash):
@@ -78,38 +52,14 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(warnings, [])
 
-    def test_read_only_keys_are_ignored(self):
-        dash = dashboard(widget("A", 0, 0, 12, 4, chart_config=LINE))
-        dash.update({"id": "dQ7xRk", "url": "https://app.honeybadger.io/x", "project_id": 1, "is_default": False})
+    def test_any_response_keys_are_accepted(self):
+        dash = dashboard(widget("A", 0, 0, 12, 4, chart_config=dict(LINE)))
+        dash.update({"id": "dQ7xRk", "url": "https://app.honeybadger.io/x", "project_id": "p8Kx2", "links": {"web": "https://app.honeybadger.io/x"}})
+        dash["widgets"][0]["config"]["vis"]["chart_config"]["anything"] = 1
         self.assertEqual(self.errors(dash), [])
 
-    def test_unknown_keys(self):
-        dash = dashboard(widget("A", 0, 0, 12, 4, chart_config={"xField": "time", "yField": "count", "color": "red"}))
-        dash["widgets"][0]["position"] = 1
-        dash["widgets"][0]["config"]["ts"] = "P1D"
-        dash["owner"] = "me"
-        errs = self.errors(dash)
-        self.assertTrue(any("unknown key 'owner'" in e for e in errs))
-        self.assertTrue(any("unknown key 'position'" in e for e in errs))
-        self.assertTrue(any("unknown config key 'ts'" in e for e in errs))
-        self.assertTrue(any("'color' is not valid for view line" in e for e in errs))
-
-    def test_widget_type_and_view(self):
-        bad_type = dashboard(widget("A", 0, 0, 6, 4, wtype="chart"))
-        self.assertTrue(any("type must be one of" in e for e in self.errors(bad_type)))
-        bad_view = dashboard(widget("A", 0, 0, 6, 4, view="sparkline"))
-        self.assertTrue(any("vis.view must be one of" in e for e in self.errors(bad_view)))
-
-    def test_required_chart_config(self):
-        bar = dashboard(widget("A", 0, 0, 6, 4, view="bar", chart_config={"valueField": "count"}))
-        self.assertTrue(any("requires chart_config.categoryField" in e for e in self.errors(bar)))
-        events_line = dashboard(widget("A", 0, 0, 6, 4, view="line", chart_config={"groupType": "events", "xField": "time"}))
-        self.assertTrue(any("requires chart_config.yField" in e for e in self.errors(events_line)))
-        fields_line = dashboard(widget("A", 0, 0, 6, 4, view="line", chart_config={"groupType": "fields", "xField": "time"}))
-        self.assertEqual(self.errors(fields_line), [])
-        bare_billboard = dashboard(widget("A", 0, 0, 6, 4, view="billboard"))
-        self.assertEqual(self.errors(bare_billboard), [])
-        self.assertTrue(any("defaults to groupType events" in w for w in self.warnings(bare_billboard)))
+    def test_widgets_must_be_an_array(self):
+        self.assertTrue(any("widgets must be an array" in e for e in self.errors({"title": "Shop"})))
 
     def test_grid_overflow_and_overlap(self):
         overflow = dashboard(widget("A", 8, 0, 6, 4, chart_config=LINE))
@@ -117,31 +67,14 @@ class CheckTests(unittest.TestCase):
         overlap = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE), widget("B", 3, 2, 6, 4, chart_config=LINE))
         self.assertTrue(any("overlaps" in e for e in self.errors(overlap)))
         floats = dashboard(widget("A", 0, 0, 6.0, 4, chart_config=LINE))
-        self.assertTrue(any("must be integers" in e for e in self.errors(floats)))
+        self.assertTrue(any("integer x, y, w, h" in e for e in self.errors(floats)))
         adjacent = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE), widget("B", 6, 0, 6, 4, chart_config=LINE),
                              widget("C", 0, 4, 12, 2, chart_config=LINE))
         self.assertEqual(self.errors(adjacent), [])
 
-    def test_title_lengths(self):
-        long = "x" * 256
-        dash = dashboard(widget(long, 0, 0, 6, 4, chart_config=LINE), title=long)
-        errs = self.errors(dash)
-        self.assertTrue(any("dashboard: title is 256" in e for e in errs))
-        self.assertTrue(any("presentation.title is 256" in e for e in errs))
-        null_title = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE))
-        null_title["widgets"][0]["presentation"] = {"title": None, "subtitle": None}
-        self.assertEqual(self.errors(null_title), [])
-
     def test_widget_count_warning(self):
         many = dashboard(*[widget(f"W{i}", 0, i * 2, 12, 2, chart_config=LINE) for i in range(31)])
         self.assertTrue(any("31 widgets" in w for w in self.warnings(many)))
-
-    def test_insights_vis_needs_query_and_view(self):
-        dash = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE))
-        dash["widgets"][0]["config"] = {"vis": {"chart_config": LINE}}
-        errs = self.errors(dash)
-        self.assertTrue(any("need a non-empty query" in e for e in errs))
-        self.assertTrue(any("vis.view must be one of" in e for e in errs))
 
     def test_internal_stream_warning(self):
         notice = 'filter event_type::str == "notice" | stats count() as count by klass::str'
@@ -152,8 +85,8 @@ class CheckTests(unittest.TestCase):
         self.assertFalse(any('lacks "internal"' in w for w in self.warnings(present)))
         deployments = dashboard(widget("Deploys", 0, 0, 6, 4, wtype="deployments"))
         self.assertEqual(self.warnings(deployments), [])
-        bad_slug = dashboard(widget("A", 0, 0, 6, 4, chart_config=LINE, streams=["Kp3mQ8vLxR2a"]))
-        self.assertTrue(any("unknown stream" in e for e in self.errors(bad_slug)))
+        every_stream = dashboard(widget("Errors", 0, 0, 6, 4, query=notice, view="bar", chart_config=bar))
+        self.assertEqual(self.warnings(every_stream), [])
 
 
 class DiffTests(unittest.TestCase):
@@ -200,9 +133,16 @@ class DiffTests(unittest.TestCase):
             widget("Copy", 0, 4, 6, 4, wid="w1", chart_config=LINE),
             widget("Invented", 6, 4, 6, 4, wid="w9", chart_config=LINE),
         )
-        errors, _, _ = validate.diff(self.before, after)
+        errors, warnings, lines = validate.diff(self.before, after)
         self.assertTrue(any("'w1' appears twice" in e for e in errors))
-        self.assertTrue(any("'w9' is not on the existing dashboard" in e for e in errors))
+        self.assertTrue(any("'w9' is not on the existing dashboard" in w for w in warnings))
+        self.assertIn('added (1): widget 3 "Invented"', "\n".join(lines))
+
+    def test_widgets_only_update(self):
+        after = {"widgets": json.loads(json.dumps(self.before["widgets"]))}
+        errors, warnings, lines = validate.diff(self.before, after)
+        self.assertEqual((errors, warnings), ([], []))
+        self.assertNotIn("title", "\n".join(lines))
 
 
 class RunTests(unittest.TestCase):
@@ -218,7 +158,7 @@ class RunTests(unittest.TestCase):
         proposed = dashboard(
             widget("Requests", 0, 0, 6, 4, wid="w1", chart_config=LINE),
             widget("Errors", 6, 0, 8, 4, query='filter event_type::str == "notice" | stats count() as count',
-                   view="billboard", chart_config={"valueField": "count"}),
+                   view="billboard", chart_config={"valueField": "count"}, streams=["default"]),
         )
         code, lines = validate.run(self.write(proposed), self.write(before))
         self.assertEqual(code, 1)
