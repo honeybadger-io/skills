@@ -1,6 +1,6 @@
 # Honeybadger wizard
 
-Set up Honeybadger with your coding agent. Run it in your app's directory:
+Set up Honeybadger with your coding agent. It needs Node 22.20 or later. Run it in your app's directory:
 
 ```
 npx @honeybadger-io/wizard
@@ -38,7 +38,7 @@ With `--yes` in CI (when `CI` is set) or with no terminal, the wizard installs b
 | Claude Code | The `honeybadger` plugin, via `claude plugin install` | Bundled with the plugin; the wizard sets its `mcp_url` option to the region's server |
 | Everything else | Installed from GitHub by the [skills CLI](https://github.com/vercel-labs/skills) into `~/.agents/skills`, which they all read | [add-mcp](https://github.com/neondatabase/add-mcp) writes each agent's config; Amp uses `amp mcp add` |
 
-Claude Code doesn't update the plugin automatically unless you turn on auto-update: run `/plugin`, open the **Marketplaces** tab, select `honeybadger`, and choose **Enable auto-update**. To update the skills for the other agents, run `npx skills update --global`, or run the wizard again.
+Claude Code doesn't update the plugin automatically unless you turn on auto-update: run `/plugin`, open the **Marketplaces** tab, select `honeybadger`, and choose **Enable auto-update**. To update the skills for the other agents, run the wizard again. `npx skills update --global` also works, but it updates every skill you've installed globally with the skills CLI, not just Honeybadger's, and replaces local edits to them.
 
 The wizard runs the skills CLI with its telemetry turned off (`DISABLE_TELEMETRY=1`).
 
@@ -60,4 +60,4 @@ npm test
 node bin/wizard.js --dry-run
 ```
 
-The package doesn't include the skills; the wizard installs them from GitHub. To test unreleased skills or plugin changes, set `HONEYBADGER_WIZARD_MARKETPLACE` to a local checkout of this repo: the Claude Code marketplace and the skills CLI both install from it.
+The package doesn't include the skills; the wizard installs them from GitHub. To test unreleased skills or plugin changes, set `HONEYBADGER_WIZARD_MARKETPLACE` to a local checkout of this repo: the Claude Code marketplace and the skills CLI both install from it. The wizard keeps an existing `honeybadger` marketplace, so if you've added it from GitHub, remove it first (`claude plugin marketplace remove honeybadger`) or use a separate `CLAUDE_CONFIG_DIR`.
