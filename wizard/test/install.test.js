@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { getAgentTypes } from "add-mcp";
 import { AGENTS, MCP_URLS, PLUGIN, REPO, SKILLS_CLI, findAgent, plan, repoSource } from "../src/agents.js";
 import { banner, colorSupport } from "../src/banner.js";
-import { commandEnv, findBin, isCI, looksLikeProject } from "../src/install.js";
+import { commandEnv, findBin, isCI, looksLikeProject, nodeAtLeast } from "../src/install.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "hb-wizard-"));
 
@@ -180,4 +180,12 @@ test("commandEnv drops the npx settings the wizard was started with, only for np
   const base = { PATH: "/bin", npm_config_package: "@honeybadger-io/wizard", npm_config_call: "wizard" };
   assert.deepEqual(commandEnv("npx", { DISABLE_TELEMETRY: "1" }, base), { PATH: "/bin", DISABLE_TELEMETRY: "1" });
   assert.deepEqual(commandEnv("claude", {}, base), base);
+  assert.deepEqual(commandEnv("npx", {}, { NPM_CONFIG_CALL: "wizard", PATH: "/bin" }), { PATH: "/bin" });
+});
+
+test("nodeAtLeast compares major.minor.patch", () => {
+  assert.equal(nodeAtLeast("22.20.0", "22.20.0"), true);
+  assert.equal(nodeAtLeast("22.20.0", "24.1.0"), true);
+  assert.equal(nodeAtLeast("22.20.0", "22.9.0"), false);
+  assert.equal(nodeAtLeast("22.20.0", "20.20.0"), false);
 });

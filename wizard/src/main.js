@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
-import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
+import { AGENTS, PROMPT, SKILLS_CLI_NODE, findAgent, plan } from "./agents.js";
 import { banner, colorSupport } from "./banner.js";
 import {
   addMcpServer,
@@ -10,6 +10,7 @@ import {
   findBin,
   isCI,
   looksLikeProject,
+  nodeAtLeast,
 } from "./install.js";
 
 const IDS = AGENTS.map((agent) => agent.id).join(", ");
@@ -157,6 +158,14 @@ async function wizard(argv) {
     );
     if (ids === undefined) return stop();
     agents = all.filter((a) => ids.includes(a.id));
+  }
+
+  // The skills CLI installs the skills for every agent but Claude Code, and needs a newer Node than the wizard
+  if (agents.some((agent) => agent.skills) && !nodeAtLeast(SKILLS_CLI_NODE)) {
+    p.log.error(
+      `Installing the skills for agents other than Claude Code needs Node ${SKILLS_CLI_NODE} or later; this is Node ${process.versions.node}.`,
+    );
+    return stop("Upgrade Node, or set up only Claude Code (--agent claude).", 1);
   }
 
   // Show what will change, then install.

@@ -19,10 +19,22 @@ export function addMcpServer(agents, url) {
 export function commandEnv(bin, extra = {}, base = process.env) {
   const env = { ...base, ...extra };
   if (bin === "npx") {
-    delete env.npm_config_package;
-    delete env.npm_config_call;
+    // npm reads npm_config_* in any case
+    for (const key of Object.keys(env)) {
+      if (["npm_config_package", "npm_config_call"].includes(key.toLowerCase())) delete env[key];
+    }
   }
   return env;
+}
+
+/** True if version (like process.versions.node) is at least min, comparing major.minor.patch. */
+export function nodeAtLeast(min, version = process.versions.node) {
+  const parse = (v) => v.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const [a, b] = [parse(version), parse(min)];
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return true;
 }
 
 /** Returns the first of bins found on PATH, or undefined. */

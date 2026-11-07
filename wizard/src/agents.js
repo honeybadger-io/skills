@@ -13,6 +13,8 @@ export function repoSource(env = process.env) {
 
 // The skills CLI (skills.sh) installs the skills for every agent but Claude Code. Pinned: it runs through npx.
 export const SKILLS_CLI = "skills@1.7.6";
+// The oldest Node it runs on (its engines field); on Node 20 it crashes at startup.
+export const SKILLS_CLI_NODE = "22.20.0";
 export const MARKETPLACE = "honeybadger";
 export const PLUGIN = `honeybadger@${MARKETPLACE}`;
 

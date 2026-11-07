@@ -28,7 +28,7 @@
     "src"
   ],
   "engines": {
-    "node": ">=20.12"
+    "node": ">=22.20"
   },
   "scripts": {
     "start": "node bin/wizard.js",
