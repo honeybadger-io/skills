@@ -1,5 +1,3 @@
-import { join } from "node:path";
-
 export const MCP_URLS = {
   us: "https://mcp.honeybadger.io/mcp",
   eu: "https://eu-mcp.honeybadger.io/mcp",
@@ -7,11 +5,16 @@ export const MCP_URLS = {
 
 export const REPO = "honeybadger-io/skills";
 
-// Where Claude Code gets the marketplace. Tests point it at a local checkout so
-// an unreleased plugin can be installed end to end; users never set this.
-export function marketplaceSource(env = process.env) {
+// Where Claude Code's marketplace and the skills CLI get this repo. Tests point it at a local checkout so
+// unreleased skills and plugin changes can be installed end to end; users never set this.
+export function repoSource(env = process.env) {
   return env.HONEYBADGER_WIZARD_MARKETPLACE || REPO;
 }
+
+// The skills CLI (skills.sh) installs the skills for every agent but Claude Code. Pinned: it runs through npx.
+export const SKILLS_CLI = "skills@1.7.6";
+// The oldest Node it runs on (its engines field); on Node 20 it crashes at startup.
+export const SKILLS_CLI_NODE = "22.20.0";
 export const MARKETPLACE = "honeybadger";
 export const PLUGIN = `honeybadger@${MARKETPLACE}`;
 
@@ -23,6 +26,7 @@ export const PROMPT =
  * Agents the wizard can set up.
  *
  *   bins     - CLI names to look for on PATH, in order
+ *   skills   - the skills CLI's name for the agent
  *   mcp      - add-mcp's agent id, if add-mcp can register the MCP server
  *   launch   - args that start the agent interactively with a prompt; null if
  *              the wizard can't start it
@@ -40,6 +44,7 @@ export const AGENTS = [
   },
   {
     id: "codex",
+    skills: "codex",
     name: "Codex",
     bins: ["codex"],
     mcp: "codex",
@@ -47,6 +52,7 @@ export const AGENTS = [
   },
   {
     id: "cursor",
+    skills: "cursor",
     name: "Cursor",
     // The CLI was renamed from cursor-agent to agent.
     bins: ["agent", "cursor-agent"],
@@ -55,6 +61,7 @@ export const AGENTS = [
   },
   {
     id: "opencode",
+    skills: "opencode",
     name: "OpenCode",
     bins: ["opencode"],
     mcp: "opencode",
@@ -62,6 +69,7 @@ export const AGENTS = [
   },
   {
     id: "gemini",
+    skills: "gemini-cli",
     name: "Gemini CLI",
     bins: ["gemini"],
     mcp: "gemini-cli",
@@ -69,6 +77,7 @@ export const AGENTS = [
   },
   {
     id: "copilot",
+    skills: "github-copilot",
     name: "GitHub Copilot CLI",
     bins: ["copilot"],
     mcp: "github-copilot-cli",
@@ -76,12 +85,14 @@ export const AGENTS = [
   },
   {
     id: "amp",
+    skills: "amp",
     name: "Amp",
     bins: ["amp"],
     launch: null,
   },
   {
     id: "pi",
+    skills: "pi",
     name: "Pi",
     bins: ["pi"],
     mcp: "pi",
@@ -91,6 +102,7 @@ export const AGENTS = [
     // Any agent that reads ~/.agents/skills. The wizard can't know where its MCP config lives, so it prints the
     // config to add.
     id: "other",
+    skills: "universal",
     name: "Other agent",
     listName: "your other agent",
     bins: [],
@@ -105,26 +117,25 @@ export function findAgent(id) {
 
 /**
  * The steps that install Honeybadger for the chosen agents. A step is one of:
- *   { title, cmd: [bin, ...args], ignoreFailure? }  - run a command
- *   { title, copySkills: dir }                      - copy the Honeybadger skills into dir
+ *   { title, cmd: [bin, ...args], env?, ignoreFailure? } - run a command
  *   { title, mcp: [agent ids], url }                - register the MCP server with add-mcp
  *   { title, manual: [[bin, ...args], ...] }        - commands for the user to run
  *   { title, snippet, url }                         - MCP server details for the user to add
  *
  * Claude Code gets the plugin, which bundles the MCP server. The plugin's
  * mcp_url option picks the region's server, so the wizard never writes Claude
- * Code's MCP config. The other agents share one copy of the skills in
- * ~/.agents/skills.
+ * Code's MCP config. The skills CLI installs the skills for the other agents
+ * from GitHub; they all read its one global copy in ~/.agents/skills.
  *
- * An agent without its CLI on PATH (agent.bin unset) gets files where it can:
- * copied skills and add-mcp. Claude Code and Amp need their CLI, so they get
- * the commands to run instead.
+ * An agent without its CLI on PATH (agent.bin unset) still gets the skills and,
+ * where add-mcp can write it, the MCP config. Claude Code and Amp need their
+ * CLI, so they get the commands to run instead.
  *
  * marketplaces is the names of Claude Code's marketplaces. If one is already
  * called honeybadger, the plugin installs from it: adding ours would fail when
  * its source differs, such as a local checkout.
  */
-export function plan(agents, region, home, { marketplaces = [], env = process.env } = {}) {
+export function plan(agents, region, { marketplaces = [], env = process.env } = {}) {
   const byId = Object.fromEntries(agents.map((agent) => [agent.id, agent]));
   const url = MCP_URLS[region];
   const server = region === "eu" ? "the EU MCP server" : "the MCP server";
@@ -135,7 +146,7 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
     steps.push({
       title: "Install the Honeybadger plugin in Claude Code",
       manual: [
-        ["claude", "plugin", "marketplace", "add", marketplaceSource(env)],
+        ["claude", "plugin", "marketplace", "add", repoSource(env)],
         install,
       ],
     });
@@ -143,7 +154,7 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
     if (!marketplaces.includes(MARKETPLACE)) {
       steps.push({
         title: "Adding the Honeybadger marketplace to Claude Code",
-        cmd: ["claude", "plugin", "marketplace", "add", marketplaceSource(env)],
+        cmd: ["claude", "plugin", "marketplace", "add", repoSource(env)],
       });
     }
     // Also sets the region when the plugin is already installed.
@@ -159,11 +170,14 @@ export function plan(agents, region, home, { marketplaces = [], env = process.en
     });
   }
 
-  const shared = agents.filter((agent) => agent.id !== "claude");
+  const shared = agents.filter((agent) => agent.skills);
   if (shared.length > 0) {
     steps.push({
       title: `Installing the Honeybadger skills for ${list(shared)}`,
-      copySkills: join(home, ".agents", "skills"),
+      cmd: ["npx", "-y", SKILLS_CLI, "add", repoSource(env), "--global",
+        "--agent", ...shared.map((agent) => agent.skills), "--skill", "*", "--yes"],
+      // Don't send the skills CLI's usage data on our users' behalf
+      env: { DISABLE_TELEMETRY: "1" },
     });
   }
 

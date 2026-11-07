@@ -1,18 +1,16 @@
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import * as p from "@clack/prompts";
 import spawn from "cross-spawn";
-import { AGENTS, PROMPT, findAgent, plan } from "./agents.js";
+import { AGENTS, PROMPT, SKILLS_CLI_NODE, findAgent, plan } from "./agents.js";
 import { banner, colorSupport } from "./banner.js";
 import {
   addMcpServer,
-  copySkills,
-  existingSkills,
+  commandEnv,
   findBin,
   isCI,
   looksLikeProject,
-  skillsSource,
+  nodeAtLeast,
 } from "./install.js";
 
 const IDS = AGENTS.map((agent) => agent.id).join(", ");
@@ -162,10 +160,18 @@ async function wizard(argv) {
     agents = all.filter((a) => ids.includes(a.id));
   }
 
+  // The skills CLI installs the skills for every agent but Claude Code, and needs a newer Node than the wizard
+  if (agents.some((agent) => agent.skills) && !nodeAtLeast(SKILLS_CLI_NODE)) {
+    p.log.error(
+      `Installing the skills for agents other than Claude Code needs Node ${SKILLS_CLI_NODE} or later; this is Node ${process.versions.node}.`,
+    );
+    return stop("Upgrade Node, or set up only Claude Code (--agent claude).", 1);
+  }
+
   // Show what will change, then install.
   const claude = agents.find((agent) => agent.id === "claude" && agent.bin);
   const marketplaces = claude ? claudeMarketplaces() : [];
-  const steps = plan(agents, region, homedir(), { marketplaces });
+  const steps = plan(agents, region, { marketplaces });
   // Steps for the user: commands to run, or MCP config to add
   const manual = steps.filter((step) => step.manual || step.snippet);
   const auto = steps.filter((step) => !step.manual && !step.snippet);
@@ -296,14 +302,12 @@ function claudeMarketplaces() {
 function run(step) {
   if (step.cmd) {
     const [bin, ...rest] = step.cmd;
-    const result = spawn.sync(bin, rest, { encoding: "utf8" });
+    const result = spawn.sync(bin, rest, { encoding: "utf8", env: commandEnv(bin, step.env) });
     if (result.error) throw result.error;
     if (result.status !== 0) {
       const output = (result.stderr || result.stdout || "").trim();
       throw new Error(`\`${step.cmd.join(" ")}\` failed${output ? `:\n${output}` : "."}`);
     }
-  } else if (step.copySkills) {
-    copySkills(skillsSource(), step.copySkills);
   } else if (step.mcp) {
     addMcpServer(step.mcp, step.url);
   }
@@ -313,11 +317,6 @@ function describe(step) {
   if (step.cmd) {
     const cmd = `  $ ${step.cmd.map(quote).join(" ")}`;
     return step.ignoreFailure ? `${cmd}  (if present)` : cmd;
-  }
-  if (step.copySkills) {
-    const replaced = existingSkills(skillsSource(), step.copySkills);
-    const copy = `  copy the Honeybadger skills to ${step.copySkills}`;
-    return replaced.length > 0 ? `${copy}\n  overwrites: ${replaced.join(", ")}` : copy;
   }
   return `  add-mcp: honeybadger = ${step.url} for ${step.mcp.join(", ")}`;
 }
