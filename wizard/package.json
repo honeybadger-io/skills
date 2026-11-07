@@ -25,17 +25,14 @@
   },
   "files": [
     "bin",
-    "src",
-    "skills"
+    "src"
   ],
   "engines": {
     "node": ">=20.12"
   },
   "scripts": {
     "start": "node bin/wizard.js",
-    "test": "node --test",
-    "prepack": "node scripts/bundle-skills.js",
-    "postpack": "node scripts/bundle-skills.js --clean"
+    "test": "node --test"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
