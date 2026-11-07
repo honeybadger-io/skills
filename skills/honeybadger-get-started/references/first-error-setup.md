@@ -110,7 +110,9 @@ debug logging — and remove all of them whenever this step ends: after verifica
 diagnosis stalls, or when the user stops you. A leftover crash route or forced
 development reporting does more harm than an unfinished setup. After verification, offer
 to resolve the test faults with `update_fault`, sharing their URLs first so the user can
-look.
+look. Offer it only for a fault whose notices are all test errors (check with
+`list_fault_notices`): a test error can be grouped into an existing fault, and resolving
+that fault would hide the real errors in it.
 
 ## 5. Production
 
