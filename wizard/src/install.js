@@ -13,7 +13,7 @@ export function addMcpServer(agents, url) {
 }
 
 /**
- * The environment to run bin with. Started through npx, the wizard inherits npx's settings for its own package
+ * Started through npx, the wizard inherits npx's settings for its own package
  * (npm_config_package, npm_config_call); an npx it runs would read them and run the wizard's package instead.
  */
 export function commandEnv(bin, extra = {}, base = process.env) {

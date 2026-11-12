@@ -5,13 +5,13 @@ export const MCP_URLS = {
 
 export const REPO = "honeybadger-io/skills";
 
-// Where Claude Code's marketplace and the skills CLI get this repo. Tests point it at a local checkout so
-// unreleased skills and plugin changes can be installed end to end; users never set this.
+// Where Claude Code's marketplace and the skills CLI get this repo. Set it to a local checkout to install
+// unreleased changes.
 export function repoSource(env = process.env) {
   return env.HONEYBADGER_WIZARD_MARKETPLACE || REPO;
 }
 
-// The skills CLI (skills.sh) installs the skills for every agent but Claude Code. Pinned: it runs through npx.
+// Pinned because it runs through npx.
 export const SKILLS_CLI = "skills@1.7.6";
 // The oldest Node it runs on (its engines field); on Node 20 it crashes at startup.
 export const SKILLS_CLI_NODE = "22.20.0";

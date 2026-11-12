@@ -160,7 +160,6 @@ async function wizard(argv) {
     agents = all.filter((a) => ids.includes(a.id));
   }
 
-  // The skills CLI installs the skills for every agent but Claude Code, and needs a newer Node than the wizard
   if (agents.some((agent) => agent.skills) && !nodeAtLeast(SKILLS_CLI_NODE)) {
     p.log.error(
       `Installing the skills for agents other than Claude Code needs Node ${SKILLS_CLI_NODE} or later; this is Node ${process.versions.node}.`,
