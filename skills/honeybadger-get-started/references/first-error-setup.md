@@ -1,0 +1,148 @@
+# First-error setup
+
+Goal: one test error, sent through the app the way the platform docs verify an install,
+is confirmed in Honeybadger through the MCP, and the app is on a path to production. A
+local-only success isn't the goal — the value of error tracking comes from errors real
+users hit.
+
+## 1. Platform and region
+
+1. Map the project to its docs page with [`sdk-docs.md`](sdk-docs.md) and fetch the page,
+   even for a framework you know well. Install commands, defaults, and the verification
+   step change between versions, so take them from the docs, not from memory.
+2. Confirm the platform with the user before installing anything. Files can mislead:
+   monorepos, a frontend and a backend in one repo, a framework layered on another.
+3. If you've been told the account's region, use it. Otherwise the account is in the US
+   region, unless you're connected to the EU MCP endpoint (`eu-mcp.honeybadger.io`). An EU
+   account's library must report to EU endpoints: follow the docs' EU instructions,
+   including any region options on the install command.
+
+## 2. Project and API key
+
+1. Choose a project from the `list_projects` result. If several could fit, ask.
+2. If none fits, propose a name and ask before calling `create_project` — it creates
+   something visible to the user's whole team. If `create_project` isn't among your tools,
+   the connection is read-only: the user either re-authorizes with read-write access or
+   creates the project in the UI.
+3. Get the project's API key from the `token` field of `list_projects` or `get_project`.
+   If the project has no `token` and your MCP has a tool that reads or lists a project's
+   API keys or ingestion keys, use that. Don't create a key.
+4. Use the key the way the platform docs show. Pass it to the install command if the
+   docs have one. Otherwise, put it where their configuration step does (a config file,
+   or the `HONEYBADGER_API_KEY` environment variable).
+
+   **The project API key is not a secret credential.** It is an ingestion key, more like
+   an analytics tag than an API token: it can only send data into this one project
+   (errors, events, deploys, check-ins). It can't read data, change settings, or reach any
+   other project, and browser and mobile apps ship it publicly. So:
+
+   - Reading it from the MCP, passing it on a command line, and showing it to the user
+     are all fine. Don't warn that listing projects "exposed" keys, and don't suggest
+     rotating them.
+   - Don't introduce a password manager, keychain, or secrets store just for this key,
+     and don't invent a different setup from the docs to keep it out of a file.
+   - Committing the config file the docs generate is normal. If the repo already keeps
+     settings like this in environment variables or a secrets store (an `.env` pattern,
+     Rails credentials, a deploy platform's settings), say that the docs also accept
+     `HONEYBADGER_API_KEY` and offer to use it.
+
+## 3. Install
+
+Install and configure the library following the platform docs, keeping their default
+configuration. The defaults are what Honeybadger recommends; trimming them removes things
+users expect to have.
+
+## 4. Verify
+
+The platform docs end with a verification step. Do that step once and nothing more: send
+exactly one test error, then confirm it through the MCP. Work down this list and stop at
+the first case that applies.
+
+1. **The docs' install command sends a test error itself.** Ruby's
+   `bundle exec honeybadger install <key>` and Laravel's `php artisan honeybadger:install <key>`
+   write the config *and* send a test exception through the app. Running the install
+   command, with the region options the docs show for EU accounts, is the verification. Do not also run `honeybadger test` or
+   `honeybadger:test`, call `notify`, add a route, or raise anything yourself; go straight
+   to confirming the error the install sent.
+2. **The docs have a separate test command or snippet** (a `test` command, a settings
+   checkbox, a snippet that notifies or raises): run it once, exactly as the docs show.
+   If the docs offer several independent triggers (WordPress has separate PHP and JS
+   test checkboxes), pick one.
+3. **The docs have no test step** (for example Ember): trigger one yourself, through the
+   running app. Prefer an existing code path that can be made to fail (a form with
+   invalid input, a 404 page, a dev-only console call to the client's `notify`), or ask
+   the user how they would trigger an error. Only if neither works, add a temporary
+   trigger (a raise behind a one-off flag or a dev-only route) and remove it afterward.
+   Give the error a unique message (e.g. `Honeybadger test error <timestamp>`) so you can
+   find exactly it. If you know how to start the app, offer to do it; otherwise ask the
+   user to start it or tell you how.
+
+Client libraries don't report from development or test environments by default. The
+install and test commands in cases 1 and 2 turn reporting on for themselves. In case 3,
+and for a snippet that only calls `notify`, temporarily enable reporting with the switch
+the library's docs describe, and remove it afterward. A missing switch is the usual
+reason nothing shows up.
+
+To confirm the test error:
+
+1. Fetch the `errors` topic with `get_reference` for the search syntax.
+2. Call `list_faults` with the project ID, `order: recent`, and `q` matching the error's
+   message. Ingestion usually takes seconds; poll a few times before concluding it's
+   missing.
+3. Call `get_fault` and `list_fault_notices` on the match. It counts only if the newest
+   notice was created after you triggered it: Honeybadger groups repeat errors
+   into one fault, so a test from an earlier install can match the search even when
+   this one is broken.
+4. Report the error class, message, and fault URL to the user.
+
+If the install or test command says the API key is invalid, check the region first: you
+may have assumed US for an EU account.
+
+If nothing arrives within about two minutes, check in this order: reporting is enabled for
+the current environment, the key belongs to this project, the region matches (a US key
+fails against EU endpoints and vice versa), the library initializes before the error, and
+the triggering code actually ran. Temporarily turn on the library's debug logging (see
+its docs) and read what it prints at boot and on notify. Keep diagnosing until the error
+arrives; pointing the user at their dashboard doesn't close the loop.
+
+Track every temporary change you make — the reporting override, the trigger, and any
+debug logging — and remove all of them whenever this step ends: after verification, when
+diagnosis stalls, or when the user stops you. A leftover crash route or forced
+development reporting does more harm than an unfinished setup. After verification, offer
+to resolve the test faults with `update_fault`, sharing their URLs first so the user can
+look.
+
+## 5. Production
+
+- If you can see how the project deploys — CI config, a Dockerfile or Procfile, a hosting
+  platform, a deploy section in `AGENTS.md` or `CLAUDE.md` — propose the changes so
+  production has the API key, the environment name, and the revision. Wire up deployment
+  tracking from the library's docs so errors tie to the deploy that introduced them.
+- Otherwise, ask how they deploy and offer to wire it in. Production is where the real
+  errors are, so recommend this step rather than leaving it as optional.
+- Take deploy actions only with the user's consent.
+
+## 6. Readable backtraces
+
+Production builds can mangle backtraces that look fine locally.
+
+- JavaScript or TypeScript that's bundled or minified (browser apps, Next.js, React
+  Native) needs source maps.
+- Apple platforms need dSYMs.
+- Server-side languages (Ruby, Python, PHP, Elixir, Go, Java, .NET, …) usually need
+  nothing; say so and move on.
+
+The docs for each are under "Readable backtraces" in [`sdk-docs.md`](sdk-docs.md). Also
+check the verified error's backtrace in its notice: frames that are minified or missing
+file and line information locally will be worse in production.
+
+## Done when
+
+- [ ] Library installed with its default configuration
+- [ ] Exactly one test error, sent the way the platform docs say (the install command
+      when it sends one; a test command or snippet otherwise; by hand only when the docs
+      have no test step), confirmed through the MCP; class, message, and URL reported to
+      the user
+- [ ] Temporary trigger, reporting override, and debug logging removed
+- [ ] Production path agreed with the user (no deploy without consent)
+- [ ] Backtrace readability addressed for this platform
