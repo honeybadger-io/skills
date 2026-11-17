@@ -66,13 +66,37 @@ pi install https://github.com/honeybadger-io/skills
 
 This installs the skills. Pi has no built-in MCP support, so to give it the MCP server, install an MCP extension such as [pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter) and add `https://mcp.honeybadger.io/mcp` (EU: `https://eu-mcp.honeybadger.io/mcp`) as its README describes.
 
-### Cursor
+### Cursor, OpenCode, and other agents
 
-Add this repository as a plugin source in Cursor. The manifests are in `.cursor-plugin/`. The plugin uses the US MCP server; for an EU account, use the wizard or the steps for other agents below.
+Copy the skills to `~/.agents/skills`, which Cursor, OpenCode, and most other agents read:
 
-### Other agents
+```
+git clone --depth 1 https://github.com/honeybadger-io/skills.git honeybadger-skills
+mkdir -p ~/.agents/skills
+cp -R honeybadger-skills/skills/honeybadger-* ~/.agents/skills/
+```
 
-Copy the folders in `skills/` to wherever your agent loads skills from, and add the MCP server:
+To update, run `git -C honeybadger-skills pull` and the `cp` command again from the same directory. Then add the MCP server. EU accounts use `https://eu-mcp.honeybadger.io/mcp` in place of the US URL below.
+
+**Cursor:** add the server to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "honeybadger": {
+      "url": "https://mcp.honeybadger.io/mcp"
+    }
+  }
+}
+```
+
+**OpenCode:**
+
+```
+opencode mcp add honeybadger --url https://mcp.honeybadger.io/mcp --global
+```
+
+**Other agents:** if your agent doesn't read `~/.agents/skills`, copy the skills to wherever it loads them from. Most agents take an MCP config in this shape; check your agent's docs for where it goes:
 
 ```json
 {
@@ -84,8 +108,6 @@ Copy the folders in `skills/` to wherever your agent loads skills from, and add 
   }
 }
 ```
-
-EU accounts use `https://eu-mcp.honeybadger.io/mcp`.
 
 ### Troubleshooting
 
