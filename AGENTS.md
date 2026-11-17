@@ -9,7 +9,6 @@ Honeybadger skills for AI coding agents (Claude Code, Codex, and Cursor). The re
 ```
 skills/<name>/SKILL.md          # One skill per directory; name must match the directory
 skills/<name>/references/       # Optional detail the agent loads only when needed
-skills/<name>/scripts/          # Optional helper scripts
 .claude-plugin/                 # Claude Code plugin + marketplace manifests, and the Claude directory README
 .codex-plugin/plugin.json       # Codex plugin manifest
 .cursor-plugin/                 # Cursor plugin + marketplace manifests
@@ -26,6 +25,7 @@ wizard/                         # npx @honeybadger-io/wizard: installs the skill
 - Every skill name starts with `honeybadger-` (for example `honeybadger-debug-errors`). Codex, Cursor, and plain skill folders have no plugin namespace, so the prefix keeps our skills apart from other vendors'.
 - Each skill is one task a user would ask for ("debug this error", "add Honeybadger to my app"). Do not make one skill per SDK or language; put per-SDK detail in `references/`.
 - Frontmatter is `name` and `description` only. The description says what the skill does and when to use it, because agents pick skills from the description alone.
+- Skills hold only Markdown, text, JSON, YAML and images. No scripts or other executables: Anthropic's plugin directory refuses them from organizations it hasn't verified.
 - Keep `SKILL.md` short. Move long detail into `references/` and link to it from `SKILL.md`.
 - Do not copy the docs. Link to https://docs.honeybadger.io, and use the MCP server's `get_reference` tool for BadgerQL, dashboards, alarms, and check-ins.
 - Use the MCP tools for live data. Name the exact tool (for example `list_faults`, `get_fault`).
