@@ -1,0 +1,54 @@
+name: Claude directory
+
+# On a release tag, rebuild the claude-directory branch that Anthropic's plugin
+# directory tracks. The branch holds only what scripts/build_claude_directory.py
+# writes; send changes to main instead of editing it.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check skills and manifests
+        run: python3 scripts/validate.py
+
+      - name: Build the directory plugin
+        run: python3 scripts/build_claude_directory.py "$RUNNER_TEMP/plugin" --version "${GITHUB_REF_NAME#v}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the directory plugin
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin validate "$RUNNER_TEMP/plugin"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: claude-directory
+          path: claude-directory
+
+      - name: Commit to claude-directory
+        working-directory: claude-directory
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R "$RUNNER_TEMP/plugin/." .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "claude-directory already matches $GITHUB_REF_NAME"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Build from main @ ${GITHUB_SHA::7} ($GITHUB_REF_NAME)" \
+            -m "Generated for Anthropic's plugin directory. Don't edit this branch; send changes to main."
+          git push origin HEAD:claude-directory
