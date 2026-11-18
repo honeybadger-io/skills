@@ -16,7 +16,7 @@ npx @honeybadger-io/wizard
 
 It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes. It asks for your Honeybadger region, US or EU.
 
-If you used the wizard, don't also install the Codex, Copilot, or Pi packages below: those agents already load the skills from `~/.agents/skills`, and the packages would load them twice. Pi still needs an MCP extension; see [Pi](#pi).
+If you used the wizard, don't also install the Codex, Copilot, or Pi packages below: those agents already load the skills from `~/.agents/skills`, and the packages would load them twice.
 
 ### Claude Code
 
@@ -62,9 +62,11 @@ copilot mcp disable honeybadger
 
 ```
 pi install https://github.com/honeybadger-io/skills
+pi mcp add honeybadger --url https://mcp.honeybadger.io/mcp
+pi mcp login honeybadger
 ```
 
-This installs the skills. Pi has no built-in MCP support, so to give it the MCP server, install an MCP extension such as [pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter) and add `https://mcp.honeybadger.io/mcp` (EU: `https://eu-mcp.honeybadger.io/mcp`) as its README describes.
+EU accounts use `https://eu-mcp.honeybadger.io/mcp` in `pi mcp add`.
 
 ### Cursor, OpenCode, and other agents
 
