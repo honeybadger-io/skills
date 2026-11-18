@@ -113,7 +113,7 @@ opencode mcp add honeybadger --url https://mcp.honeybadger.io/mcp --global
 
 ### Troubleshooting
 
-If you also added Honeybadger as a connector on claude.ai, Claude Code uses that connector instead of the plugin's MCP server, because both point at the same URL. If the Honeybadger tools are missing, run `/mcp` and log in to the claude.ai Honeybadger connector, or remove that connector.
+If you also connected the Honeybadger connector on claude.ai with the same region as the plugin, Claude Code uses the plugin's MCP server and lists the connector as hidden in `/mcp`, because both point at the same URL. If the Honeybadger tools are missing, run `/mcp` and log in to the plugin's `honeybadger` server. If the connector and the plugin use different regions, both load; log in to the one for your account's region.
 
 ## Skills
 
