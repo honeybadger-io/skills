@@ -6,7 +6,7 @@ Repeatable tests for the skills, run with `claude plugin eval`. They use a mock 
 
 ```bash
 claude plugin eval . --scaffold --trust-plugin --ablation none --no-publish -j 8 \
-  --allow-tools WebFetch Write --judge-model sonnet
+  --allow-tools WebFetch Write "Edit(//tmp/**)" "Edit(//private/tmp/**)" --judge-model sonnet
 python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 ```
 
@@ -14,7 +14,7 @@ python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 - `--ablation none` skips the no-plugin arm. Without the plugin there is no Honeybadger MCP server, so that arm only shows that the tools are needed. To measure what a skill adds, run the suite from a copy of the repo with the skill removed (keep `.claude-plugin/`, `.mcp.json`, and `evals/`), and compare.
 - One case: `--case debug-fix-named --runs 1`. `--case` takes one name or glob (`--case 'debug-*'`); a second `--case` replaces the first. To read a transcript, add `--keep-temp` and open `out/trace.jsonl` in the kept directory.
 - `--allow-tools WebFetch` lets the get-started cases read the live Honeybadger docs, as the skill does. Without it those cases fail their docs checks.
-- `Write` lets the dashboard cases write the backup of a dashboard before they change it. Without it those cases fail their `backs-up` checks.
+- `Write` and the two `Edit(...)` rules let `dash-add-widget` write its dashboard backup to the temp directory, outside the repo, as the skill says. Evals run in don't-ask mode, where a bare `Write` grant covers only the working directory; without the `Edit` rules the write is denied, the agent saves without a backup, and the case fails its `answer` check.
 - `--judge-model sonnet`: the default judge (Haiku) sometimes failed answers that met the criteria. Sonnet costs about the same here and was consistent.
 - A full run (25 cases × 3 runs) costs about $17. The alarm cases cost the most, about $0.60 a run, because the agent mock answers every query with a model call.
 
