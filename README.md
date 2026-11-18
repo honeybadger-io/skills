@@ -2,7 +2,7 @@
 
 Skills and an MCP server that teach AI coding agents how to use [Honeybadger](https://www.honeybadger.io): find production errors, read the backtrace, find the root cause, and fix it.
 
-Works with Claude Code, Codex, Cursor, and any agent that supports the [Agent Plugins](https://agent-plugins.org/) standard or [Agent Skills](https://agentskills.io/).
+Works with Claude Code, Codex, GitHub Copilot CLI, Cursor, and any agent that supports the [Agent Plugins](https://agent-plugins.org/) standard or [Agent Skills](https://agentskills.io/).
 
 ## Install
 
@@ -15,6 +15,8 @@ npx @honeybadger-io/wizard
 ```
 
 It installs the skills and MCP server for the coding agents it finds (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot CLI, Amp, and Pi), then offers to start one to add Honeybadger to the app. See [wizard/](wizard/) for what it changes. It asks for your Honeybadger region, US or EU.
+
+If you used the wizard, don't also install the Codex, Copilot, or Pi packages below: those agents already load the skills from `~/.agents/skills`, and the packages would load them twice. If you already installed the Copilot plugin, uninstall it before running the wizard (`copilot plugin uninstall honeybadger@honeybadger`): Copilot uses the plugin's MCP server over the one the wizard adds, so an EU account would still get the US server.
 
 ### Claude Code
 
@@ -29,13 +31,74 @@ The plugin asks which MCP server to use: `https://mcp.honeybadger.io/mcp` for US
 claude plugin install honeybadger@honeybadger --config mcp_url=https://eu-mcp.honeybadger.io/mcp
 ```
 
-### Codex and Cursor
+### Codex
 
-Add this repository as a plugin source in your agent. The manifests are in `.codex-plugin/` and `.cursor-plugin/`. These plugins use the US MCP server; for an EU account, use the wizard or the steps for other agents below.
+```
+codex plugin marketplace add honeybadger-io/skills
+codex plugin add honeybadger@honeybadger
+```
 
-### Other agents
+The plugin uses the US MCP server. For an EU account, replace it with the EU server:
 
-Copy the folders in `skills/` to wherever your agent loads skills from, and add the MCP server:
+```
+codex mcp add honeybadger --url https://eu-mcp.honeybadger.io/mcp
+```
+
+### GitHub Copilot CLI
+
+```
+copilot plugin marketplace add honeybadger-io/skills
+copilot plugin install honeybadger@honeybadger
+```
+
+The plugin uses the US MCP server. For an EU account, add the EU server under its own name and turn off the plugin's server, which Copilot otherwise keeps running beside it:
+
+```
+copilot mcp add --transport http honeybadger-eu https://eu-mcp.honeybadger.io/mcp
+copilot mcp disable honeybadger
+```
+
+### Pi
+
+```
+pi install https://github.com/honeybadger-io/skills
+pi mcp add honeybadger --url https://mcp.honeybadger.io/mcp
+pi mcp login honeybadger
+```
+
+EU accounts use `https://eu-mcp.honeybadger.io/mcp` in `pi mcp add`.
+
+### Cursor, OpenCode, and other agents
+
+Copy the skills to `~/.agents/skills`, which Cursor, OpenCode, and most other agents read:
+
+```
+git clone --depth 1 https://github.com/honeybadger-io/skills.git honeybadger-skills
+mkdir -p ~/.agents/skills
+cp -R honeybadger-skills/skills/honeybadger-* ~/.agents/skills/
+```
+
+To update, run `git -C honeybadger-skills pull` and the `cp` command again from the same directory. Then add the MCP server. EU accounts use `https://eu-mcp.honeybadger.io/mcp` in place of the US URL below.
+
+**Cursor:** add the server to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "honeybadger": {
+      "url": "https://mcp.honeybadger.io/mcp"
+    }
+  }
+}
+```
+
+**OpenCode:**
+
+```
+opencode mcp add honeybadger --url https://mcp.honeybadger.io/mcp --global
+```
+
+**Other agents:** if your agent doesn't read `~/.agents/skills`, copy the skills to wherever it loads them from. Most agents take an MCP config in this shape; check your agent's docs for where it goes:
 
 ```json
 {
@@ -47,8 +110,6 @@ Copy the folders in `skills/` to wherever your agent loads skills from, and add 
   }
 }
 ```
-
-EU accounts use `https://eu-mcp.honeybadger.io/mcp`.
 
 ### Troubleshooting
 
