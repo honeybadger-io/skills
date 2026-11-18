@@ -6,7 +6,7 @@ Repeatable tests for the skills, run with `claude plugin eval`. They use a mock 
 
 ```bash
 claude plugin eval . --scaffold --trust-plugin --ablation none --no-publish -j 8 \
-  --allow-tools WebFetch Write "Bash(python3:*)" --judge-model sonnet
+  --allow-tools WebFetch Write --judge-model sonnet
 python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 ```
 
@@ -14,7 +14,7 @@ python3 -I evals/show.py evals/results/<timestamp>/aggregate-result.json
 - `--ablation none` skips the no-plugin arm. Without the plugin there is no Honeybadger MCP server, so that arm only shows that the tools are needed. To measure what a skill adds, run the suite from a copy of the repo with the skill removed (keep `.claude-plugin/`, `.mcp.json`, and `evals/`), and compare.
 - One case: `--case debug-fix-named --runs 1`. `--case` takes one name or glob (`--case 'debug-*'`); a second `--case` replaces the first. To read a transcript, add `--keep-temp` and open `out/trace.jsonl` in the kept directory.
 - `--allow-tools WebFetch` lets the get-started cases read the live Honeybadger docs, as the skill does. Without it those cases fail their docs checks.
-- `Write "Bash(python3:*)"` lets the dashboard cases write the proposed dashboard to a file and run the skill's validator on it. Without them those cases fail their `runs-validator` checks.
+- `Write` lets the dashboard cases write the backup of a dashboard before they change it. Without it those cases fail their `backs-up` checks.
 - `--judge-model sonnet`: the default judge (Haiku) sometimes failed answers that met the criteria. Sonnet costs about the same here and was consistent.
 - A full run (25 cases × 3 runs) costs about $17. The alarm cases cost the most, about $0.60 a run, because the agent mock answers every query with a model call.
 
@@ -117,7 +117,7 @@ Every case also checks that the agent does not call `update_fault` or `create_fa
 
 ## Cases: honeybadger-dashboards
 
-The Shop project has one dashboard, "Shop Overview" (`dQ7xRk`), with four widgets that carry server ids: "Requests per hour" (line), "Server errors" (billboard), "Slowest actions" (table), and "Errors by class", a bar chart over `notice` events whose `streams` is `["default"]`, so it renders empty. `create_dashboard` and `update_dashboard` reply with a plain-text confirmation and the dashboard's `url`; `delete_dashboard` returns a preview with a confirmation token. The validator in `skills/honeybadger-dashboards/scripts/` runs only when `Write` and `Bash(python3:*)` are granted with `--allow-tools`, as in the run command above.
+The Shop project has one dashboard, "Shop Overview" (`dQ7xRk`), with four widgets that carry server ids: "Requests per hour" (line), "Server errors" (billboard), "Slowest actions" (table), and "Errors by class", a bar chart over `notice` events whose `streams` is `["default"]`, so it renders empty. `create_dashboard` and `update_dashboard` reply with a plain-text confirmation and the dashboard's `url`; `delete_dashboard` returns a preview with a confirmation token.
 
 The skill saves what the user asked for without stopping to ask, after writing a backup of the dashboard to `honeybadger-dashboard-<id>-<timestamp>.json`. A question about a dashboard changes nothing.
 
@@ -129,7 +129,7 @@ The skill saves what the user asked for without stopping to ask, after writing a
 | `dash-fix-widget` | "This widget shows no data. Fix it.": names the missing `internal` stream, backs up, and saves the fix once, keeping all four ids |
 | `dash-empty-widget` | "This widget shows no data. What's wrong?": reads the widget, runs its query, names the missing `internal` stream, offers the fix without saving |
 
-Every case also checks that the agent never calls `delete_dashboard`, that the `dashboards` reference is fetched, and that the skill loads. All but `dash-empty-widget` check that the agent runs the validator. `alarm-create-confirm`, `alarm-heartbeat`, `investigate-slow-site`, and `investigate-incident` check the other way: the dashboards skill does not load for an alerting or incident request.
+Every case also checks that the agent never calls `delete_dashboard`, that the `dashboards` reference is fetched, and that the skill loads. The three update cases also check that the answer lists the widgets the update added, changed, and removed. `alarm-create-confirm`, `alarm-heartbeat`, `investigate-slow-site`, and `investigate-incident` check the other way: the dashboards skill does not load for an alerting or incident request.
 
 ## Insights mocks
 

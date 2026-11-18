@@ -10,7 +10,7 @@ Your job is to turn a goal into widgets whose queries return data, and to change
 ## Rules that always apply
 
 - **The widgets you send replace the dashboard's widgets.** A widget missing from `update_dashboard` is deleted, and there is no version history. Call `get_dashboard` first, send every widget you are not changing exactly as returned, with its `id`, send the `title` and `default_ts` back unchanged, and leave `id` off new widgets.
-- **Back up before every `update_dashboard`.** Write the `get_dashboard` output, with your file-writing tool, to `honeybadger-dashboard-<dashboard id>-<date and time>.json` in a temporary or scratch directory outside the repo, and tell the user the path. Don't run a shell command just to get the time or find the directory; any unique name will do. It doubles as `before.json` for the validator. It is the only way to undo the update (step 5). If you cannot write files, say so; the `get_dashboard` output in your context is then the only copy.
+- **Back up before every `update_dashboard`.** Write the `get_dashboard` output, with your file-writing tool, to `honeybadger-dashboard-<dashboard id>-<date and time>.json` in a temporary or scratch directory outside the repo, and tell the user the path. Don't run a shell command just to get the time or find the directory; any unique name will do. It is the only way to undo the update (step 5). If you cannot write files, say so; the `get_dashboard` output in your context is then the only copy.
 - **Run every new or changed query with `query_insights` before saving.** The save checks structure, not queries: a broken query saves fine and renders as an empty widget.
 - **Make the change the user asked for.** A request to create a dashboard, or to add, change, fix, or remove a widget, is permission to save it: check it (step 3), back it up, save once, and report what changed (step 4). Do not stop to ask. A question ("why is this widget empty?", "what does this dashboard show?") is not a request to change anything: answer it and offer the fix.
 - **Never remove what the user did not ask to remove**, and call `delete_dashboard` only when the user asked to delete that dashboard; it has its own two-step preview.
@@ -36,23 +36,23 @@ Keep existing widgets where they are and put new ones below them.
 
 ## 3. Check it
 
-Write the proposed dashboard (`title`, `default_ts`, `widgets`) to a JSON file outside the repo, using your file-writing tool rather than the shell. Then run the validator from this skill's directory as a single command, with absolute paths and no `cd`, pipes, or `&&`, so that a permission rule for `python3` covers it:
+Before an update, compare the widgets you are about to send with the backup, by `id`:
 
-```
-python3 -I <skill dir>/scripts/validate.py proposed.json --before before.json
-```
+- **Removed:** an id in the backup that you are not sending. Unless the user asked to remove that widget, it is missing from your list: put it back.
+- **Changed:** an id in both, with different fields. List the fields that changed.
+- **Added:** a widget with no `id`. Never invent an id; the server assigns them.
 
-`before.json` is the backup; leave it off for a new dashboard. The script checks what the save doesn't. It rejects grid overflow, overlaps, and duplicate widget ids. It warns about an id the dashboard didn't have, a left-out `title` or `default_ts`, and every widget the update would delete, and it lists which widgets will be added, changed (with the fields that changed), and removed. A widget you did not mean to remove means a widget is missing from your file: put it back. Fix every error before going on. A different command being denied does not mean this one will be: try it. Only if this command itself fails (no Python, or no permission to run it), check by hand: compare the widget ids in the backup with the ids you are sending, and lay out the grid with no overlaps. Say that you did.
+For a new dashboard as well as an update, check the grid: no two widgets overlap, and none runs past column 12. Keep the list of added, changed, and removed widgets; it is what you report in step 4.
 
 ## 4. Save and report
 
 For an update, write the backup first. Then call `create_dashboard` or `update_dashboard` once. If the save is rejected, nothing changed: fix the field the error names and save again.
 
-Give the user the dashboard link from the response (`url`, or `links.web`). Say what was added, changed, and removed, using the validator's diff, and that the other widgets are as they were. For an update, give the backup path and say the change can be undone.
+Give the user the dashboard link from the response (`url`, or `links.web`). Say what was added, changed, and removed, from your list in step 3, and that the other widgets are as they were. For an update, give the backup path and say the change can be undone.
 
 ## 5. Undo an update
 
-When the user asks to undo or roll back, read the backup and call `get_dashboard` for the current state. Call `update_dashboard` with the backup's `title`, `default_ts`, and `widgets`. Keep the `id` of each widget that is still on the dashboard, and leave `id` off a widget the update deleted, so the server creates it again (with a new id). Run the validator with the current dashboard as `--before` first. For a dashboard you created, undo is `delete_dashboard`, after the user confirms.
+When the user asks to undo or roll back, read the backup and call `get_dashboard` for the current state. Call `update_dashboard` with the backup's `title`, `default_ts`, and `widgets`. Keep the `id` of each widget that is still on the dashboard, and leave `id` off a widget the update deleted, so the server creates it again (with a new id). Compare the widgets you send with the current dashboard first, as in step 3. For a dashboard you created, undo is `delete_dashboard`, after the user confirms.
 
 ## 6. Fix an empty or wrong widget
 
