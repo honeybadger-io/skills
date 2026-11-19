@@ -101,7 +101,7 @@ Start from the four golden signals: latency, traffic, errors, saturation. RED (r
 ## 4. Write queries that chart well
 
 - **The query's aliases are the chart's fields.** Every field `chart_config` names must be an alias the query outputs, exactly. Check this before saving; a mismatch renders empty.
-- **Use bare `bin()` with `rate()` on time charts.** Bare `bin()` sizes buckets to the range the viewer picks (1-minute buckets for an hour, 15-minute buckets for a day, verified), so the chart keeps a readable number of points. That also changes what a plain `count()` per bucket means: the same traffic reads about 700 per bucket over an hour and about 10,500 over a day. `rate(count(), 1m)` divides each bucket by its length, so every point means "per minute" at any range (the `badgerql` topic's `rate` entry has the details):
+- **Use bare `bin()` on time charts, and `rate()` for counts and sums.** Bare `bin()` sizes buckets to the range the viewer picks (1-minute buckets for an hour, 15-minute buckets for a day, verified), so the chart keeps a readable number of points. That also changes what a plain `count()` per bucket means: the same traffic reads about 700 per bucket over an hour and about 10,500 over a day. `rate(count(), 1m)` divides each bucket by its length, so every point means "per minute" at any range. Use it for counts and sums only, not percentiles, averages, or percentages (the `badgerql` topic's `rate` entry has the details):
   - **Pick the unit that keeps numbers readable:** `rate(count(), 1m)` for busy traffic, `rate(count(), 1h)` or `1d` for low-volume events like signups.
   - **Totals use plain `count()`.** A billboard answering "how many orders in this range" wants the count, not a rate.
   - **A fixed `count() by bin(1m)` only fits short ranges.** Over a day it returns more than the 1,000-row result cap, and the chart is cut off.
@@ -150,7 +150,7 @@ Before saving a new dashboard, check every widget against this list and fix what
 - [ ] Every widget serves what the dashboard is for: the subject the user named, or the question agreed with them.
 - [ ] Each statistic fits what it shows: percentiles for latency as users feel it, sums or averages for load and cost, a rate or ratio with its denominator when the base varies.
 - [ ] Events and people are kept apart (`count()` versus `unique()`), and the title says which.
-- [ ] Time charts use bare `bin()` with `rate()` (a fixed `bin(1d)` only for calendar comparisons over a week or more), and fill gaps.
+- [ ] Time charts use bare `bin()` (a fixed `bin(1d)` only for calendar comparisons over a week or more), counts and sums over time use `rate()`, percentiles and percentages don't, and gaps are filled.
 - [ ] Each view is readable: no pie with more than five parts or one part dwarfing the rest, stacks only for parts of a meaningful whole, rankings sorted and limited.
 - [ ] Headline numbers on top, trends next, breakdowns and lists below.
 - [ ] Titles carry the measure and unit; subtitles carry the scope and any limits.
