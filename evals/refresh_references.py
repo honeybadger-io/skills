@@ -28,6 +28,7 @@ CASE_TOPICS = {
     "dash-add-widget": DASHBOARD_TOPICS,
     "dash-empty-widget": DASHBOARD_TOPICS,
     "dash-new-dashboard": DASHBOARD_TOPICS,
+    "dash-undo": DASHBOARD_TOPICS,
 }
 USED_TOPICS = {name for topics in CASE_TOPICS.values() for name in topics}
 
