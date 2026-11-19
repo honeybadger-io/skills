@@ -1,6 +1,6 @@
 ---
 name: honeybadger-dashboards
-description: Creates and changes Honeybadger Insights dashboards. Builds a dashboard from a goal ("a dashboard for checkout health"), adds, removes, or fixes a widget, chart, tile, or table on an existing dashboard, and explains what a dashboard shows. Use when the user asks to create, edit, or describe an Insights dashboard, says a dashboard shows no data or a widget is empty, or says a dashboard update dropped or lost widgets. For alerts and alarms use honeybadger-alarms; for incidents, outages, and support tickets use honeybadger-investigate.
+description: Builds a Honeybadger Insights dashboard for a service, feature, job queue, or customer ("a dashboard for checkout health"), adds, removes, or fixes a widget, chart, tile, or table on an existing one without losing anything, undoes a dashboard change, and explains what a dashboard shows. Use when the user asks to create, edit, undo, or describe an Insights dashboard, asks what a dashboard should show, says a dashboard shows no data or a widget is empty, or says a dashboard update dropped or lost widgets. For alerts and alarms use honeybadger-alarms; for incidents, outages, and support tickets use honeybadger-investigate.
 ---
 
 # Honeybadger dashboards
