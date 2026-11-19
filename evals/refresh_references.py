@@ -51,6 +51,10 @@ def snapshot_hashes():
 
 def check():
     saved, live = snapshot_hashes(), live_hashes()
+    missing = sorted(USED_TOPICS - live.keys())
+    if missing:
+        print("the docs index has no " + ", ".join(missing) + " topic; the evals still serve the old snapshot")
+        return 1
     changed = sorted(name for name in USED_TOPICS if saved.get(name) != live.get(name))
     if not changed:
         print("reference snapshot matches the docs site")
@@ -63,6 +67,9 @@ def check():
 def refresh():
     index = json.loads(fetch(f"{BASE_URL}/index.json"))
     topics = [t for t in index["instructions"] if t["name"] in USED_TOPICS]
+    missing = USED_TOPICS - {t["name"] for t in topics}
+    if missing:
+        sys.exit(f"the docs index has no {', '.join(sorted(missing))} topic; nothing written")
     bodies = {}
     for topic in topics:
         body = fetch(topic["url"])
