@@ -847,24 +847,23 @@
             "type": "string"
           },
           "default_ts": {
-            "description": "Default time range for the dashboard. ISO 8601 duration (e.g., P1D, PT3H) or keyword (today, yesterday, week, month).",
+            "description": "Default time range for the dashboard. ISO 8601 duration (e.g. P1D, PT3H) or a keyword (today, yesterday, week, month).",
             "type": "string"
           },
           "widgets": {
-            "description": "JSON array of widget objects. The dashboards reference topic has the full widget schema and examples. Each widget needs: type (insights_vis, alarms, errors, deployments, checkins, uptime), and optionally: grid ({x,y,w,h}), presentation ({title, subtitle}), config (type-specific settings). For insights_vis widgets, config should include query (BadgerQL string) and vis ({view, chart_config}).",
+            "description": "JSON array of widget objects. The dashboards reference topic has the full schema and examples. Each widget needs a type (insights_vis, alarms, errors, deployments, checkins, uptime) and optionally grid, presentation and config.",
             "type": "string"
           }
         },
         "required": [
           "project_id",
-          "title",
-          "widgets"
+          "title"
         ]
       }
     },
     {
       "name": "update_dashboard",
-      "description": "Update an existing Insights dashboard. IMPORTANT: Requires reference topics: dashboards, charts, queries, badgerql \u2014 fetch via get_reference first (skip topics still visible in your context).",
+      "description": "Update an existing Insights dashboard. Only the parameters given are changed, so a rename needs only title. IMPORTANT: Requires reference topics: dashboards, charts, queries, badgerql \u2014 fetch via get_reference first (skip topics still visible in your context).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -878,23 +877,21 @@
             "type": "string"
           },
           "title": {
-            "description": "The title of the dashboard",
+            "description": "A new title for the dashboard",
             "type": "string"
           },
           "default_ts": {
-            "description": "Default time range for the dashboard. ISO 8601 duration (e.g., P1D, PT3H) or keyword (today, yesterday, week, month).",
+            "description": "Default time range for the dashboard. ISO 8601 duration (e.g. P1D, PT3H) or a keyword (today, yesterday, week, month). Pass an empty string to clear it.",
             "type": "string"
           },
           "widgets": {
-            "description": "JSON array of widget objects. The dashboards reference topic has the full widget schema and examples. Each widget needs: type (insights_vis, alarms, errors, deployments, checkins, uptime), and optionally: grid ({x,y,w,h}), presentation ({title, subtitle}), config (type-specific settings). For insights_vis widgets, config should include query (BadgerQL string) and vis ({view, chart_config}).",
+            "description": "JSON array of widget objects that replaces the dashboard's widgets: a widget left out is removed, and a widget keeps its identity only if it's sent with the id get_dashboard returned. Omit to leave the widgets as they are. The dashboards reference topic has the schema.",
             "type": "string"
           }
         },
         "required": [
           "project_id",
-          "dashboard_id",
-          "title",
-          "widgets"
+          "dashboard_id"
         ]
       }
     },

@@ -2,8 +2,6 @@
 expect:
   project_id: number
   dashboard_id: string
-  title: string
-  widgets: string
 ---
 
-Updated dashboard {{input.dashboard_id}} "{{input.title}}" in project {{input.project_id}}. The widgets were saved exactly as submitted: widgets with an id were updated in place, and widgets without one were created and assigned ids. URL: https://app.honeybadger.io/projects/{{input.project_id}}/insights/dashboards/shop-overview-{{input.dashboard_id}}
+{"created_at":"2026-08-20T15:02:11.410Z","default_ts":"P1D","id":"{{input.dashboard_id}}","is_default":true,"links":{"web":"https://app.honeybadger.io/projects/{{input.project_id}}/insights/dashboards/shop-overview-{{input.dashboard_id}}"},"project_id":{{input.project_id}},"shared":true,"title":"Shop Overview","updated_at":"2026-10-08T12:00:00Z","widgets":{{input.widgets}}}
