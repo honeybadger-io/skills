@@ -31,10 +31,12 @@ Someone should glance at the dashboard and know whether things are OK, and if no
 ## Build widgets that work
 
 1. **Check the events.** Confirm the events the question needs exist, and read their real field names (`fields @preview`); names differ by framework and language. If the events are missing, say what to instrument instead of building widgets that will render empty.
-2. **Prove each widget before saving.** Run its query with `query_insights`:
+2. **Prove each widget before saving.** For an `insights_vis` widget, run its query with `query_insights`:
    - over the dashboard's default range, and again over the widest range viewers are likely to pick (often 7 or 30 days). Every widget runs at once when the dashboard opens, so a query that is slow over a long range can stall the whole dashboard. Narrow a slow widget you chose to fewer events, or leave it out. Keep a slow widget the user asked for, and tell them it's slow over long ranges, with a narrower version they could use instead.
-   - check it returns rows, that every `chart_config` field naming a column is a column the query outputs, and that the numbers are plausible (p95 at least p50, rates between 0 and 100%).
+   - check it returns rows, that every `chart_config` field naming a column is a column the query outputs, and that the numbers are plausible (p95 at least p50, percentages between 0 and 100, counts and rates in line with what the project sends).
    - Widgets take stream slugs (`default`, `internal`); `query_insights` takes the stream ids from `list_streams`.
+
+   For an `errors` widget, check its search with `list_faults` and the same `q`.
 3. **Draw it with a known shape.** [references/recipes.md](references/recipes.md) has query and `chart_config` shapes for common charts: several numbers in one billboard, a formatted percentage, p50 and p95 on one line, stacked bars with the zeros filled in.
 4. **Review a new dashboard before saving it.** Before you call `create_dashboard`, check every widget against the checklist at the end of [references/designing-dashboards.md](references/designing-dashboards.md), and fix what fails.
 
@@ -53,7 +55,7 @@ Read the backup and the current dashboard, back up the current one, then call `u
 
 ## Diagnose an empty widget
 
-Run its query over the dashboard's range with the widget's streams, substituting any parameter defaults yourself (the API doesn't expand them). Then check, in order:
+For an `errors` widget, run its `q` with `list_faults`. For an `insights_vis` widget, run its query over the dashboard's range with the widget's streams, substituting any parameter defaults yourself (the API doesn't expand them). Then check, in order:
 
 1. No rows: Honeybadger's own events (`notice`, `deploy`, …) need the `internal` stream; a wrong type hint; a field no event has; a filter nothing matches.
 2. A query error: the message says why.
