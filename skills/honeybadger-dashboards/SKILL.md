@@ -51,7 +51,7 @@ Someone should glance at the dashboard and know whether things are OK, and if no
 
 ## Undo
 
-Read the backup and the current dashboard, back up the current one, then call `update_dashboard` with the backup's `title`, `default_ts`, and `widgets` (an update changes only the fields it's sent, so a renamed dashboard stays renamed unless you send the old title). Keep the `id` of each widget still on the dashboard, and leave the `id` off a widget the update deleted, so the server creates it again (with a new id). For a dashboard you created, undo is `delete_dashboard`, after the user confirms.
+Read the backup and the current dashboard, back up the current one, then call `update_dashboard` with the backup's `title`, `default_ts`, and `widgets` (an update changes only the fields it's sent, so a renamed dashboard stays renamed unless you send the old title). If the backup has no `default_ts`, clear the range on the dashboard too. Keep the `id` of each widget still on the dashboard, and leave the `id` off a widget the update deleted, so the server creates it again (with a new id). For a dashboard you created, undo is `delete_dashboard`, after the user confirms.
 
 ## Diagnose an empty widget
 
