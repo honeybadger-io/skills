@@ -14,6 +14,20 @@ Build dashboards that answer a question at a glance, and change existing ones wi
 - **A request to create, add, change, fix, or remove is permission to save.** Don't stop to ask.
 - **Never remove what the user didn't ask to remove.** Call `delete_dashboard` only when the user asked to delete that dashboard.
 
+## Design it to be read at a glance
+
+Someone should glance at the dashboard and know whether things are OK, and if not, where to look.
+
+- **The user knows what they want** (a service, a job queue, a customer, a release, or specific widgets): build that. The rules below decide how each part is shown, not whether it belongs.
+- **The request is vague but asks for a dashboard** ("a dashboard for my Rails app"): build for the obvious subject (here, the app's health), and say in the report what it covers so the user can redirect.
+- **The user isn't sure what to make:** start from a question with them. What do they watch for, who looks at it and when, and what would they do differently after seeing it? Then propose a dashboard that answers it.
+- **Measure what each widget is for.** How slow it feels: p50 and p95. How much work or cost: sums, or averages with the count. Anything with a varying base: a rate or ratio, with its denominator. People versus events: `unique()` versus `count()`.
+- **Match the view to what it shows.** Is it OK now: a billboard. Is it changing: a line over bare `bin()`. Which ones: a sorted bar or table, top N. How spread out: a histogram or heatmap. Errors, deploys, alarms, check-ins: Honeybadger's own widgets.
+- **Lay it out top to bottom:** headline numbers, then trends, then breakdowns, with related widgets side by side. 6 to 12 widgets.
+- **Titles name the measure and unit** ("p95 response time (ms)"); subtitles name the scope and any limits.
+
+[references/designing-dashboards.md](references/designing-dashboards.md) has the full rules, query patterns that chart well, and a checklist to review a dashboard against. Read it before building a new dashboard.
+
 ## Build widgets that work
 
 1. **Check the events.** Confirm the events the question needs exist, and read their real field names (`fields @preview`); names differ by framework and language. If the events are missing, say what to instrument instead of building widgets that will render empty.
@@ -21,6 +35,8 @@ Build dashboards that answer a question at a glance, and change existing ones wi
    - over the dashboard's default range, and again over the widest range viewers are likely to pick (often 7 or 30 days). Every widget runs at once when the dashboard opens, so a query that is slow over a long range can stall the whole dashboard. Narrow a slow widget you chose to fewer events, or leave it out. Keep a slow widget the user asked for, and tell them it's slow over long ranges, with a narrower version they could use instead.
    - check it returns rows, that every `chart_config` field naming a column is a column the query outputs, and that the numbers are plausible (p95 at least p50, rates between 0 and 100%).
    - Widgets take stream slugs (`default`, `internal`); `query_insights` takes the stream ids from `list_streams`.
+3. **Draw it with a known shape.** [references/recipes.md](references/recipes.md) has query and `chart_config` shapes for common charts: several numbers in one billboard, a formatted percentage, p50 and p95 on one line, stacked bars with the zeros filled in.
+4. **Review a new dashboard before saving it.** Before you call `create_dashboard`, check every widget against the checklist at the end of [references/designing-dashboards.md](references/designing-dashboards.md), and fix what fails.
 
 ## Change a dashboard safely
 
