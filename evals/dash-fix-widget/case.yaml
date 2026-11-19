@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: dash-fix-widget
+description: Asks to fix the empty widget over notice events. The agent should find the missing internal stream, back up the dashboard, and save the fix once without asking, keeping every widget id.
+tags: [dashboards]
+plugins: ["../.."]
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, "Bash(python3:*)", "Bash(ls:*)"]
+context:
+  scaffold_script: fixture.sh
