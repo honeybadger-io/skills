@@ -123,11 +123,11 @@ The skill saves what the user asked for without stopping to ask, after writing a
 
 | Case | Checks |
 |------|--------|
-| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard`, the query, and a backup holding all four widget ids before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the `url`, and the backup path |
-| `dash-new-dashboard` | "A dashboard for checkout health": runs the queries, then exactly one `create_dashboard` with at least three widgets; reports the `url` |
+| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard` and a backup holding all four widget ids before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the link, and the backup path |
+| `dash-new-dashboard` | "A dashboard for checkout health": exactly one `create_dashboard` with at least three widgets; reports the link |
 | `dash-empty-widget` | "This widget shows no data. What's wrong?": reads the widget, runs its query, names the missing `internal` stream, offers the fix without saving |
 
-Every case also checks that the agent never calls `delete_dashboard`, that the `dashboards` reference is fetched, and that the skill loads. `dash-add-widget` also checks that the answer lists the widgets the update added, changed, and removed. `alarm-create-confirm`, `alarm-heartbeat`, `investigate-slow-site`, and `investigate-incident` check the other way: the dashboards skill does not load for an alerting or incident request.
+Every case also checks that the agent never calls `delete_dashboard` and that the skill loads. The cases grade what the agent saved and said, not which tools it called on the way: running queries and fetching the reference are the MCP server's instructions, and a grader that only sees the call passes even when the reference never reached the agent. The one call check left is `dash-empty-widget`'s `query_insights`: there running the query is what the skill asks for before naming a cause. `dash-add-widget` also checks that the answer lists the widgets the update added, changed, and removed. `alarm-create-confirm`, `alarm-heartbeat`, `investigate-slow-site`, and `investigate-incident` check the other way: the dashboards skill does not load for an alerting or incident request.
 
 ## Insights mocks
 
