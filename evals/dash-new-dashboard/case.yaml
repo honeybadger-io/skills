@@ -4,7 +4,7 @@ description: A dashboard from a goal. The agent should discover the events, run 
 tags: [dashboards]
 plugins: ["../.."]
 execution:
-  max_turns: 40
+  max_turns: 60
   timeout_seconds: 600
   allowed_tools: [Read, Glob, Grep, Skill, Write, "Bash(ls:*)"]
 context:

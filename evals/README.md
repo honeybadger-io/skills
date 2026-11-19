@@ -123,8 +123,8 @@ The skill saves what the user asked for without stopping to ask, after writing a
 
 | Case | Checks |
 |------|--------|
-| `dash-add-widget` | "Add a p95 response time chart": `get_dashboard` and a backup holding all four widget ids before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the link, and the backup path |
-| `dash-new-dashboard` | "A dashboard for checkout health": exactly one `create_dashboard` with at least three widgets; reports the link |
+| `dash-add-widget` | "Add a p95 response time chart": a backup holding all four widget ids before exactly one `update_dashboard` that keeps all four ids; reports the widget below the existing rows, the link, and the backup path |
+| `dash-new-dashboard` | "A dashboard for checkout health": exactly one `create_dashboard` with at least three widgets; reports the link. The design graders are free regex checks on the `create_dashboard` input: latency as percentiles, a headline billboard, and no fixed `bin(…)` buckets. Relevance, layout, and titles are judgment; check them by reading the saved widgets when the design guide changes |
 | `dash-empty-widget` | "This widget shows no data. What's wrong?": reads the widget, runs its query, names the missing `internal` stream, offers the fix without saving |
 | `dash-undo` | "Undo the last change", with the backup in the workspace; since then the dashboard was renamed, its range changed, one widget deleted, one query changed, and one widget added (per-case `get_dashboard` and `list_dashboards` mocks): backs up the current state, then one update that sends the old title and range, keeps the three surviving ids, brings back "Slowest actions" without its old id, restores the hourly query, and drops the added widget |
 
