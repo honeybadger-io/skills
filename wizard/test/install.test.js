@@ -1,58 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { getAgentTypes } from "add-mcp";
-import { AGENTS, MCP_URLS, PLUGIN, REPO, findAgent, marketplaceSource, plan } from "../src/agents.js";
+import { AGENTS, MCP_URLS, PLUGIN, REPO, SKILLS_CLI, findAgent, plan, repoSource } from "../src/agents.js";
 import { banner, colorSupport } from "../src/banner.js";
-import {
-  copySkills,
-  existingSkills,
-  findBin,
-  isCI,
-  looksLikeProject,
-  skillsSource,
-} from "../src/install.js";
+import { commandEnv, findBin, isCI, looksLikeProject, nodeAtLeast } from "../src/install.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "hb-wizard-"));
-
-test("copySkills copies only honeybadger-* skills and replaces stale files", () => {
-  const src = tmp();
-  mkdirSync(join(src, "honeybadger-a"));
-  writeFileSync(join(src, "honeybadger-a", "SKILL.md"), "new");
-  mkdirSync(join(src, "other-skill"));
-  const dest = tmp();
-  mkdirSync(join(dest, "honeybadger-a"));
-  writeFileSync(join(dest, "honeybadger-a", "stale.md"), "old");
-  mkdirSync(join(dest, "someone-elses"));
-
-  assert.deepEqual(copySkills(src, dest), ["honeybadger-a"]);
-  assert.deepEqual(readdirSync(join(dest, "honeybadger-a")), ["SKILL.md"]);
-  assert.ok(existsSync(join(dest, "someone-elses")));
-  assert.ok(!existsSync(join(dest, "other-skill")));
-});
-
-test("existingSkills lists only our skills already in dest", () => {
-  const src = tmp();
-  mkdirSync(join(src, "honeybadger-a"));
-  mkdirSync(join(src, "honeybadger-b"));
-  const dest = tmp();
-  mkdirSync(join(dest, "honeybadger-a"));
-  mkdirSync(join(dest, "honeybadger-mine"));
-  assert.deepEqual(existingSkills(src, dest), ["honeybadger-a"]);
-  assert.deepEqual(existingSkills(src, join(dest, "missing")), []);
-});
-
-test("copySkills leaves other honeybadger-* skills alone", () => {
-  const src = tmp();
-  mkdirSync(join(src, "honeybadger-a"));
-  const dest = tmp();
-  mkdirSync(join(dest, "honeybadger-mine"));
-  copySkills(src, dest);
-  assert.deepEqual(readdirSync(dest).sort(), ["honeybadger-a", "honeybadger-mine"]);
-});
 
 // add-mcp reads the home directory when it loads, so this runs in a child
 // process with HOME pointed at a temp dir, away from your real configs.
@@ -91,14 +48,10 @@ test("looksLikeProject", () => {
   assert.equal(looksLikeProject(dir), true);
 });
 
-test("skillsSource finds the get-started skill", () => {
-  assert.ok(existsSync(join(skillsSource(), "honeybadger-get-started", "SKILL.md")));
-});
-
 const everyone = () => AGENTS.map((agent) => ({ ...agent, bin: agent.bins[0] }));
 
 test("Claude Code gets the plugin and nothing else", () => {
-  const steps = plan([{ ...findAgent("claude"), bin: "claude" }], "us", "/home/me", { env: {} });
+  const steps = plan([{ ...findAgent("claude"), bin: "claude" }], "us", { env: {} });
   assert.deepEqual(
     steps.map((s) => s.cmd?.join(" ")),
     [
@@ -111,13 +64,13 @@ test("Claude Code gets the plugin and nothing else", () => {
 test("Claude Code keeps an existing honeybadger marketplace instead of adding ours", () => {
   const claude = [{ ...findAgent("claude"), bin: "claude" }];
   const adds = (marketplaces) =>
-    plan(claude, "us", "/home/me", { marketplaces, env: {} }).filter((s) => s.cmd?.includes("marketplace"));
+    plan(claude, "us", { marketplaces, env: {} }).filter((s) => s.cmd?.includes("marketplace"));
   assert.equal(adds([]).length, 1);
   assert.equal(adds(["honeybadger"]).length, 0);
 });
 
 test("EU points every agent at the EU server and never the US one", () => {
-  const steps = plan(everyone(), "eu", "/home/me", { env: {} });
+  const steps = plan(everyone(), "eu", { env: {} });
   const text = JSON.stringify(steps);
   assert.ok(!text.includes(MCP_URLS.us));
   assert.ok(steps.some((s) => s.cmd?.join(" ") === `claude plugin install ${PLUGIN} --config mcp_url=${MCP_URLS.eu}`));
@@ -133,15 +86,23 @@ test("the plugin's mcp_url option allows exactly the wizard's two URLs, US by de
   assert.equal(manifest.mcpServers.honeybadger.url, "${user_config.mcp_url}");
 });
 
-test("the marketplace defaults to the GitHub repo and can point at a checkout", () => {
-  assert.equal(marketplaceSource({}), REPO);
-  assert.equal(marketplaceSource({ HONEYBADGER_WIZARD_MARKETPLACE: "/src/skills" }), "/src/skills");
+test("the marketplace and skills come from the GitHub repo, or a checkout in tests", () => {
+  assert.equal(repoSource({}), REPO);
+  assert.equal(repoSource({ HONEYBADGER_WIZARD_MARKETPLACE: "/src/skills" }), "/src/skills");
 });
 
-test("other agents share one copy of the skills and one MCP step", () => {
-  const steps = plan(everyone(), "us", "/home/me", { env: {} });
-  const copies = steps.filter((s) => s.copySkills === join("/home/me", ".agents", "skills"));
-  assert.equal(copies.length, 1);
+const skillsInstall = (steps) => steps.filter((s) => s.cmd?.includes(SKILLS_CLI));
+
+test("other agents get the skills in one skills CLI run, and one MCP step", () => {
+  const steps = plan(everyone(), "us", { env: {} });
+  const installs = skillsInstall(steps);
+  assert.equal(installs.length, 1);
+  assert.deepEqual(installs[0].cmd, [
+    "npx", "-y", SKILLS_CLI, "add", REPO, "--global",
+    "--agent", "codex", "cursor", "opencode", "gemini-cli", "github-copilot", "amp", "pi", "universal",
+    "--skill", "*", "--yes",
+  ]);
+  assert.equal(installs[0].env.DISABLE_TELEMETRY, "1");
   const mcp = steps.filter((s) => s.mcp);
   assert.equal(mcp.length, 1);
   assert.deepEqual(mcp[0].mcp, AGENTS.filter((a) => a.mcp).map((a) => a.mcp));
@@ -155,11 +116,10 @@ test("add-mcp knows every agent id we pass it", () => {
   }
 });
 
-test("agents picked without their CLI get files or commands to run, never run anything", () => {
+test("agents picked without their CLI run nothing but the skills CLI", () => {
   const agents = AGENTS.map((agent) => ({ ...agent, bin: undefined }));
-  const steps = plan(agents, "us", "/home/me", { env: {} });
-  assert.ok(!steps.some((s) => s.cmd));
-  assert.ok(!steps.some((s) => s.copySkills?.includes(".claude")));
+  const steps = plan(agents, "us", { env: {} });
+  assert.deepEqual(steps.filter((s) => s.cmd), skillsInstall(steps));
   assert.deepEqual(steps.filter((s) => s.manual).map((s) => s.manual), [
     [
       ["claude", "plugin", "marketplace", "add", REPO],
@@ -189,12 +149,13 @@ test("banner color follows Node's color support check", () => {
   assert.ok(banner({ columns: 120, color: "truecolor", details: [["a", "b"]] }).includes("\x1b[38;2;234;89;55m"));
 });
 
-test("Other agent gets the shared skills and the region's MCP config to add, nothing run", () => {
+test("Other agent gets the skills and the region's MCP config to add", () => {
   const other = [{ ...findAgent("other"), bin: undefined }];
   for (const region of ["us", "eu"]) {
-    const steps = plan(other, region, "/home/me", { env: {} });
-    assert.ok(!steps.some((s) => s.cmd || s.mcp));
-    assert.ok(steps.some((s) => s.copySkills === join("/home/me", ".agents", "skills")));
+    const steps = plan(other, region, { env: {} });
+    assert.ok(!steps.some((s) => s.mcp));
+    assert.deepEqual(steps.filter((s) => s.cmd), skillsInstall(steps));
+    assert.ok(skillsInstall(steps)[0].cmd.includes("universal"));
     const snippet = JSON.parse(steps.find((s) => s.snippet).snippet);
     assert.deepEqual(snippet, { mcpServers: { honeybadger: { type: "http", url: MCP_URLS[region] } } });
   }
@@ -209,4 +170,22 @@ test("isCI", () => {
   assert.equal(isCI({ CI: "1" }), true);
   assert.equal(isCI({ CI: "false" }), false);
   assert.equal(isCI({}), false);
+});
+
+test("every agent but Claude Code has a skills CLI name", () => {
+  for (const agent of AGENTS) assert.equal(Boolean(agent.skills), agent.id !== "claude", agent.id);
+});
+
+test("commandEnv drops the npx settings the wizard was started with, only for npx", () => {
+  const base = { PATH: "/bin", npm_config_package: "@honeybadger-io/wizard", npm_config_call: "wizard" };
+  assert.deepEqual(commandEnv("npx", { DISABLE_TELEMETRY: "1" }, base), { PATH: "/bin", DISABLE_TELEMETRY: "1" });
+  assert.deepEqual(commandEnv("claude", {}, base), base);
+  assert.deepEqual(commandEnv("npx", {}, { NPM_CONFIG_CALL: "wizard", PATH: "/bin" }), { PATH: "/bin" });
+});
+
+test("nodeAtLeast compares major.minor.patch", () => {
+  assert.equal(nodeAtLeast("22.20.0", "22.20.0"), true);
+  assert.equal(nodeAtLeast("22.20.0", "24.1.0"), true);
+  assert.equal(nodeAtLeast("22.20.0", "22.9.0"), false);
+  assert.equal(nodeAtLeast("22.20.0", "20.20.0"), false);
 });

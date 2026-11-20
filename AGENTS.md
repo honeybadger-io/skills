@@ -55,7 +55,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:
 
 ## Wizard
 
-`wizard/` is the npm package `@honeybadger-io/wizard`. It publishes a copy of `skills/`, so a skill change reaches wizard users only after a new wizard release. When you rename a skill, the plugin, or the marketplace, update `wizard/src/agents.js` to match. The wizard doesn't remove a renamed skill's old folder from users' machines, so a rename needs a plan for that. Run `npm test` in `wizard/` after changing it.
+`wizard/` is the npm package `@honeybadger-io/wizard`. Claude Code gets the skills from the plugin, and the other agents from GitHub through the skills CLI. Run `npm test` in `wizard/` after changing it.
 
 ## Checks
 
