@@ -55,7 +55,7 @@ Read the backup and the current dashboard, back up the current one, then call `u
 
 ## Diagnose an empty widget
 
-For an `errors` widget, replace `@ts` and `@ts.end` in its `config.query` with the dashboard's range and run that search with `list_faults` as `q`. For an `insights_vis` widget, run its query over the dashboard's range with the widget's streams, substituting any parameter defaults yourself (the API doesn't expand them). Then check, in order:
+For an `errors` widget, replace `@ts` and `@ts.end` in its `config.query` with the dashboard's range and run that search with `list_faults` as `q`. For an `insights_vis` widget, run its query over the dashboard's range with the widget's streams, substituting parameters yourself (the API doesn't expand them): the values in the dashboard URL the user is looking at, if they gave one, and the inline defaults otherwise. Then check, in order:
 
 1. No rows: Honeybadger's own events (`notice`, `deploy`, …) need the `internal` stream; a wrong type hint; a field no event has; a filter nothing matches.
 2. A query error: the message says why.
