@@ -44,16 +44,16 @@ filter event_type::str == "process_action.action_controller"
 
 The same shape puts any two aggregates on one chart. To split one aggregate by a field's values instead (one line per controller), keep the default `groupType`, set `yField`, and put the field in `zField`.
 
-**Stacked bars with the zeros filled in.** A `stats … by bin, category` result has no row for a (bin, category) cell with no events, so a stacked chart draws gaps where it should draw zeros. `fill … across …` adds the missing cells; `including [...]` keeps a category on the chart even when it never occurs in the range.
+**Stacked bars with the zeros filled in.** A `stats … by bin, category` result has no row for a (bin, category) cell with no events, so a stacked chart draws gaps where it should draw zeros. `fill … across …` adds the missing cells; `including [...]` keeps a category on the chart even when it never occurs in the range. `rate()` keeps each bar per minute whatever bucket size `bin()` picks; filled cells come back as 0.
 
 ```
 filter event_type::str == "perform.sidekiq"
-| stats count() as count by bin() as time, status::str as outcome
+| stats rate(count(), 1m) as per_minute by bin() as time, status::str as outcome
 | fill time across outcome including ["success", "failure"]
 ```
 
 ```json
-{"view": "bar", "chart_config": {"categoryField": "time", "valueField": "count", "groupField": "outcome", "stacked": true}}
+{"view": "bar", "chart_config": {"categoryField": "time", "valueField": "per_minute", "groupField": "outcome", "stacked": true}}
 ```
 
-An `area` view with `"stacked": true`, `"xField": "time"`, `"yField": "count"`, and `"zField": "outcome"` draws the same data as stacked areas.
+An `area` view with `"stacked": true`, `"xField": "time"`, `"yField": "per_minute"`, and `"zField": "outcome"` draws the same data as stacked areas.
