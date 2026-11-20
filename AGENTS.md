@@ -15,6 +15,7 @@ skills/<name>/references/       # Optional detail the agent loads only when need
 plugin.json, mcp.json           # Agent Plugins standard (agent-plugins.org) manifests
 .mcp.json                       # MCP server config used by Codex and the Claude directory build (Claude Code's is in .claude-plugin/plugin.json, with a US/EU mcp_url option)
 scripts/validate.py             # Lint for skills and manifests (runs in CI)
+scripts/bump.py                 # Sets the version in all four versioned manifests
 scripts/build_claude_directory.py  # Builds the claude-directory branch for Anthropic's plugin directory
 evals/                          # claude plugin eval suite: mock Honeybadger server + fixture app
 wizard/                         # npx @honeybadger-io/wizard: installs the skills + MCP server, offers to start the agent
@@ -33,7 +34,7 @@ wizard/                         # npx @honeybadger-io/wizard: installs the skill
 
 ## Versioning
 
-The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json`. Bump them together; `scripts/validate.py` fails if they differ.
+The version lives in four manifests: `plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json`. Bump them together with `python3 scripts/bump.py X.Y.Z`; `scripts/validate.py` fails if they differ.
 
 ## Releasing
 
