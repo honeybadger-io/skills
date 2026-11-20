@@ -36,7 +36,7 @@ Someone should glance at the dashboard and know whether things are OK, and if no
    - check it returns rows, that every `chart_config` field naming a column is a column the query outputs, and that the numbers are plausible (p95 at least p50, percentages between 0 and 100, counts and rates in line with what the project sends).
    - Widgets take stream slugs (`default`, `internal`); `query_insights` takes the stream ids from `list_streams`.
 
-   For an `errors` widget, check its search with `list_faults` and the same `q`.
+   For an `errors` widget, replace `@ts` and `@ts.end` with the dashboard's range, then check its search with `list_faults` and that `q`.
 3. **Draw it with a known shape.** [references/recipes.md](references/recipes.md) has query and `chart_config` shapes for common charts: several numbers in one billboard, a formatted percentage, p50 and p95 on one line, stacked bars with the zeros filled in.
 4. **Review a new dashboard before saving it.** Before you call `create_dashboard`, check every widget against the checklist at the end of [references/designing-dashboards.md](references/designing-dashboards.md), and fix what fails.
 
@@ -55,7 +55,7 @@ Read the backup and the current dashboard, back up the current one, then call `u
 
 ## Diagnose an empty widget
 
-For an `errors` widget, run its `q` with `list_faults`. For an `insights_vis` widget, run its query over the dashboard's range with the widget's streams, substituting any parameter defaults yourself (the API doesn't expand them). Then check, in order:
+For an `errors` widget, replace `@ts` and `@ts.end` with the dashboard's range and run its `q` with `list_faults`. For an `insights_vis` widget, run its query over the dashboard's range with the widget's streams, substituting any parameter defaults yourself (the API doesn't expand them). Then check, in order:
 
 1. No rows: Honeybadger's own events (`notice`, `deploy`, …) need the `internal` stream; a wrong type hint; a field no event has; a filter nothing matches.
 2. A query error: the message says why.
