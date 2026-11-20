@@ -1,6 +1,6 @@
 {
   "name": "honeybadger",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Set up Honeybadger, debug errors, investigate incidents from logs, create alarms, and monitor cron jobs, with live account access via the Honeybadger MCP server.",
   "author": {
     "name": "Honeybadger Industries LLC",
