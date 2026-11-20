@@ -1,0 +1,40 @@
+{
+  "instructions": [
+    {
+      "name": "badgerql",
+      "title": "BadgerQL",
+      "description": "The BadgerQL language: grammar, type hints, built-in fields, statements, expression functions, and the rules for writing correct queries.",
+      "approx_tokens": 9067,
+      "sha256": "7bbe5de4d8c552ae3efc78e914974d9da3d25416c6a0af44ec3be80911857da2",
+      "url": "https://docs.honeybadger.io/resources/llms/instructions/badgerql.txt",
+      "page": "https://docs.honeybadger.io/resources/llms/instructions/badgerql/"
+    },
+    {
+      "name": "queries",
+      "title": "Queries",
+      "description": "Fundamentals for querying Honeybadger Insights: streams, time ranges, event-class filtering, and verifying field names exist before aggregating.",
+      "approx_tokens": 1886,
+      "sha256": "edd4da3ba04c47537972260fc5bcea2f5e3249fde630dc6be0e198b1b78c04a9",
+      "url": "https://docs.honeybadger.io/resources/llms/instructions/queries.txt",
+      "page": "https://docs.honeybadger.io/resources/llms/instructions/queries/"
+    },
+    {
+      "name": "charts",
+      "title": "Charts",
+      "description": "Visualization views for Insights query results and the chart_config fields each view accepts.",
+      "approx_tokens": 1617,
+      "sha256": "4b040d1f8a8cca84f4ca07a7cbd521babc3fa58e807d5e3cd1fdede170276e0d",
+      "url": "https://docs.honeybadger.io/resources/llms/instructions/charts.txt",
+      "page": "https://docs.honeybadger.io/resources/llms/instructions/charts/"
+    },
+    {
+      "name": "dashboards",
+      "title": "Dashboards",
+      "description": "Insights dashboard structure: the dashboard object, widget types and their configs, grid layout, and the vis object.",
+      "approx_tokens": 1631,
+      "sha256": "73e04a7af225db53c47ad9eba8962e5de5aa96801c8c75a01085f1f7da88197f",
+      "url": "https://docs.honeybadger.io/resources/llms/instructions/dashboards.txt",
+      "page": "https://docs.honeybadger.io/resources/llms/instructions/dashboards/"
+    }
+  ]
+}
